@@ -1,17 +1,20 @@
-% downsample HICEAS 2017 DASBR data for baleen whale analysis
-% original sample rate
+% downsample WHICEAS 2020 DASBR data for baleen whale analysis
 
 
 clear all
 % clc
 warning('off')
 
+drive = 'R:\';
+cruise = 'WHICEAS_2020';
 % start with single DASBR at a time...could likely loop through all
 % eventually
-dasbrNum = 'DS18_ST-K';
-serial = '1543770129'; %inner folder name and prefix of all wave filenames
+dasbrNum = 'DS2';
+stNum = 'ST-2';
+serial = '1208766495'; %inner folder name and prefix of all wave filenames
 
-path_raw = ['Q:\HICEAS_2017_DASBR\Recordings\' dasbrNum '\' serial '\'];
+path_raw = [drive cruise '_DASBR\Recordings\' dasbrNum '\' stNum '\' ...
+    serial '\'];
 % cd(path_raw);
 
 wavFiles = dir([path_raw '*.wav']);
@@ -24,13 +27,9 @@ fs0 = info.SampleRate;
 fs1 = fs0/60; % 4.8 kHz
 fs2 = fs0/288; % 1 kHz
 
-% path_out1='F:\SoCal2020\sg639_downsampled\sg639-180kHz\';
-% mkdir(path_out1);
-% path_out2='E:\SoCal2020\sg639_downsampled\sg639-10kHz\';
-% mkdir(path_out2);
-path_out1 = 'Q:\HICEAS_2017_DASBR\Recordings\decimated\DS18_ST-K_4.8kHz\';
+path_out1 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_4.8kHz\'];
 mkdir(path_out1);
-path_out2 = 'Q:\HICEAS_2017_DASBR\Recordings\decimated\DS18_ST-K_1kHz\';
+path_out2 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_1kHz\'];
 mkdir(path_out2);
 
 for f = 1:length(wavFiles)
