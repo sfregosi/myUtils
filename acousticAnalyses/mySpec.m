@@ -31,3 +31,5 @@ caxis([clims])
 cmap = cmocean('gray');
 cmap = flipud(cmap);
 colormap(cmap)
+
+end
