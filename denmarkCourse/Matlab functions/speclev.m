@@ -25,7 +25,7 @@ function    [SL,f]=speclev(x,nfft,fs,w,nov)
 %        both the negative and positive spectra are added together so that
 %        the total power in the signal is the same as the total power in 
 %        the spectrum.
-%     fs is the vector of frequencies at which SL is calculated.
+%     f is the vector of frequencies at which SL is calculated.
 %
 %     markjohnson@st-andrews.ac.uk, 2013
 

@@ -1,4 +1,4 @@
-function [Lxf, SLf, f, bw, fr, tr,] = calcTOBL(fName,centerFreq,win,overlap,plotOn)
+function [Lxf, SLf, fb, bw, fr, tr] = calcTOBL(sig,fs,centerFreq,win,overlap,plotOn)
 % Calculate 1/3 octave band noise levels RMS over duration of signal (need
 % to audioread in the file already - this is diff from calcThirdOBL.m
 %
@@ -13,7 +13,7 @@ function [Lxf, SLf, f, bw, fr, tr,] = calcTOBL(fName,centerFreq,win,overlap,plot
 %   Outputs:
 %           Lxf = RMS noise level of filtered signal
 %           SLf = spectrum levels of filtered signal
-%           f = frequency bands
+%           fb = frequencies calced at 
 %           bw = octave bandwidth
 %           fr = frequency resolution
 %           tr = time resolution
@@ -25,7 +25,7 @@ function [Lxf, SLf, f, bw, fr, tr,] = calcTOBL(fName,centerFreq,win,overlap,plot
 % win = 512;
 % overlap = win*0.5;
 
-if nargin < 5
+if nargin < 6
     plotOn = 0;
 end
 
@@ -36,12 +36,12 @@ bw = [lowerF centerFreq upperF];
 
 nfft = win;
 
-[x, fs] = audioread(fName);
-t = (1:length(x))/fs;
+% [sig, fs] = audioread(fName);
+t = (1:length(sig))/fs;
 fr = fs/win; % in Hz
 tr = win/fs; % in s
 
-[SL,f] = speclev(x,win,fs); % not sure I want these as an output
+[SL, fb] = speclev(sig,win,fs); % not sure I want these as an output
 
 % filter to 1/3 octave band - butterworth.
 f_low10 = lowerF;
@@ -49,22 +49,22 @@ f_high10 = upperF;
 % 4-pole butterworth
 [b1,a1] = butter(4,[f_low10,f_high10]/(fs/2));
 % apply the filter
-xf = filter(b1,a1,x);
+xf = filter(b1,a1,sig);
 
 % calculate the spectrum level of the filtered signal
-[SLf,f] = speclev(xf,win,fs);
+[SLf, fb] = speclev(xf,win,fs);
 
 % measure RMS noise level of the full signal and the filtered signal
 Lxf = 20*log10(std(xf));
-Lx = 20*log10(std(x));
+Lx = 20*log10(std(sig));
 
-if plotOn == 1;
+if plotOn == 1
     figure
     hold on
     % subplot(121)
-    plot(f,SL,'r')
+    plot(fb,SL,'r')
     % subplot(122)
-    plot(f,SLf,'b')
+    plot(fb,SLf,'b')
     grid
     set(gca,'XScale','log')
     legend('unfiltered',sprintf('butterworth\n cF: %iHz',centerFreq))
@@ -76,7 +76,7 @@ if plotOn == 1;
     
     figure;
     subplot(211)
-    spectrogram(x,win,overlap,win,fs,'yaxis')
+    spectrogram(sig,win,overlap,win,fs,'yaxis')
     subplot(212)
     spectrogram(xf,win,overlap,win,fs,'yaxis')
 end
