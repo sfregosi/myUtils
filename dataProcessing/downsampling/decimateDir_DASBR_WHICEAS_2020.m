@@ -19,13 +19,15 @@ cruise = 'WHICEAS_2020';
 % loop through all dasbrs
 dasbrList = dir([drive cruise '_DASBR\Recordings\DS*']);
 
-for d = 6 %1:length(dasbrList)
+for d = 1:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
     stFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\ST*']);
     stNum = stFolder.name;
-    srFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\' stFolder.name '\1*']);
-    serial =  srFolder.name;  %inner folder name and prefix of all wave filenames
+    srFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\' stFolder.name]);
+    srFolder(~[srFolder.isdir])= []; %Remove all non directories.
+    serial = setdiff({srFolder.name},{'.','..'});
+    serial =  serial{:};  %inner folder name and prefix of all wave filenames
     % double check serial is a long number
     if ~isnumeric(str2double(serial))
         pause;
