@@ -8,11 +8,10 @@ warning('off')
 
 drive = 'Q:\';
 cruise = 'HICEAS_2017';
-% start with single DASBR at a time...could likely loop through all
-% eventually
+% loop through all dasbrs
 dasbrList = dir([drive cruise '_DASBR\Recordings\*ST*']);
 
-for d = 8:10 %length(dasbrList)
+for d = 1:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
     sFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\1*']);
@@ -38,24 +37,29 @@ for d = 8:10 %length(dasbrList)
     
     % define new sample rates. **Make sure a evenly divide into full SR**
     fs0 = info.SampleRate;
-    fs1 = fs0/60; % 4.8 kHz
-    fs2 = fs0/288; % 1 kHz
+%     fs1 = fs0/288; % 1 kHz
+%     fs2 = fs0/60; % 4.8 kHz
+    fs3 = fs0/30; % 9.6 kHz
     
-    path_out1 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_4.8kHz\'];
-    mkdir(path_out1);
-    path_out2 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_1kHz\'];
-    mkdir(path_out2);
-    
+%     path_out1 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_1kHz\'];
+%     mkdir(path_out1);
+%     path_out2 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_4.8kHz\'];
+%     mkdir(path_out2);
+    path_out3 = [drive cruise '_DASBR\Recordings\decimated\' dasbrNum '_9.6kHz\'];
+    mkdir(path_out3);
+
     for f = 1:length(wavFiles)
         try
             [data, fs] = audioread([path_raw wavFiles(f,1).name]);
             
-            data1 = resample(data, fs1, fs);
-            data2 = resample(data, fs2, fs);
+%             data1 = resample(data, fs1, fs);
+%             data2 = resample(data, fs2, fs);
+            data3 = resample(data, fs3, fs);
             
-            audiowrite([path_out1 wavFiles(f,1).name(1:end-4) '_4.8kHz.wav'], data1, fs1);
-            audiowrite([path_out2 wavFiles(f,1).name(1:end-4) '_1kHz.wav'], data2, fs2);
-            
+%             audiowrite([path_out1 wavFiles(f,1).name(1:end-4) '_1kHz.wav'], data1, fs1);
+%             audiowrite([path_out2 wavFiles(f,1).name(1:end-4) '_4.8kHz.wav'], data2, fs2);
+             audiowrite([path_out3 wavFiles(f,1).name(1:end-4) '_9.6kHz.wav'], data3, fs3);
+             
             %         fprintf(1, '%s - file #%i: %s processed\n', datestr(now), f, wavFiles(f,1).name);
             
         catch
