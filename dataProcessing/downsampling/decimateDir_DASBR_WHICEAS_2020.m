@@ -19,7 +19,7 @@ cruise = 'WHICEAS_2020';
 % loop through all dasbrs
 dasbrList = dir([drive cruise '_DASBR\Recordings\DS*']);
 
-for d = 1:length(dasbrList)
+for d = 7:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
     stFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\ST*']);
@@ -29,7 +29,7 @@ for d = 1:length(dasbrList)
     serial = setdiff({srFolder.name},{'.','..'});
     serial =  serial{:};  %inner folder name and prefix of all wave filenames
     % double check serial is a long number
-    if ~isnumeric(str2double(serial))
+    if ~isnumeric(str2double( serial))
         pause;
     elseif isnumeric(str2double(serial))
         fprintf(1, 'Serial is good...');
@@ -44,7 +44,9 @@ for d = 1:length(dasbrList)
     % check that og sample rate is 288 kHz
     info = audioinfo([path_raw wavFiles(1,1).name]);
     if info.SampleRate ~= 288000
-        pause;
+        fprintf(1, '%s %s (d = %i) sample rate is %.0f Hz ...skipping\n', ...
+            dasbrNum, stNum, d, info.SampleRate)
+        continue
     elseif info.SampleRate == 288000
         fprintf(1,'sample rate is good\n');
     end
