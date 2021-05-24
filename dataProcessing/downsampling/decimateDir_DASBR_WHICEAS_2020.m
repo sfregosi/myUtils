@@ -11,6 +11,17 @@ warning('off')
 drive = 'R:\';
 cruise = 'WHICEAS_2020';
 
+% define new sample rates in Hz. **Make sure can evenly divide into full SR**
+% decimation factor calculated below
+% fs0 = info.SampleRate;
+fsNew = [1000 9600]; % in Hz, can have multiple values e.g., [1000 5000]
+
+% fs1 = 1000; % in Hz % fs0/288; % 1 kHz
+% fs1Str = [num2str(fs1/1000) 'kHz'];% new sample rate in string as kHz (for file names)
+% %     fs2 = fs0/60; % 4.8 kHz
+% fs3 = 9600; % in Hz % fs0/30; 9.6 kHz (df is 40 for higher fs)
+% fs3Str = [num2str(fs3/1000) 'kHz'];% new sample rate in string as kHz (for file names)
+
 % % single dasbr
 % dasbrNum = 'DS2';
 % stNum = 'ST-2';
@@ -20,7 +31,7 @@ cruise = 'WHICEAS_2020';
 dasbrList = dir([drive cruise '_DASBR\Recordings\DS*']);
 % *note...no .wav files for DS5 (indx = 9)
 
-for d = 9:length(dasbrList)
+for d = 7 % 1:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
     stFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\ST*']);
@@ -29,67 +40,62 @@ for d = 9:length(dasbrList)
     srFolder(~[srFolder.isdir])= []; %Remove all non directories.
     serial = setdiff({srFolder.name},{'.','..'});
     serial =  serial{:};  %inner folder name and prefix of all wave filenames
-    % double check serial is a long number
+    % double check serial folder is a long number
     if ~isnumeric(str2double( serial))
         pause;
     elseif isnumeric(str2double(serial))
         fprintf(1, 'Serial is good...');
     end
     
-    
     path_raw = [drive cruise '_DASBR\Recordings\' dasbrNum '\' stNum '\' ...
         serial '\'];
     % cd(path_raw);
     wavFiles = dir([path_raw '*.wav']);
     
-    if ~isempty(wavFiles) % check that there are actually wav files
-        % check that og sample rate is 288 kHz
+    if isempty(wavFiles)% check that there are actually wav files
+        fprintf(1, '%s: no wav files\n', dasbrNum);
+        continue
+    elseif ~isempty(wavFiles)
         info = audioinfo([path_raw wavFiles(1,1).name]);
-        if info.SampleRate ~= 288000
-            fprintf(1, '%s %s (d = %i) sample rate is %.0f Hz ...skipping\n', ...
-                dasbrNum, stNum, d, info.SampleRate)
-            continue
-        elseif info.SampleRate == 288000
-            fprintf(1,'sample rate is good\n');
-        end
+        fprintf(1, 'sample rate: %0.f Hz\n', info.SampleRate)
+        df = zeros(length(fsNew),1); % decimation factor(s)
+        path_out = cell(length(fsNew),1);
+        fsNewStr = cell(length(fsNew),1);
+        for f = 1:length(fsNew)
+            fsN = fsNew(f);
+            % calc decimation factor and check that its an integer
+            dfN = info.SampleRate/fsN;
+            if rem(dfN,1) == 0
+                fprintf(1,'decimation factor (%0.f) is good\n', dfN);
+                df(f) = dfN;
+                fsNewStr{f} = [num2str(fsN/1000) 'kHz'];% new sample rate in string as kHz (for file names)
+                path_outN = [drive cruise '_DASBR\Recordings\decimated\' ...
+                    fsNewStr{f} '\' dasbrNum '_' fsNewStr{f} '\'];
+                mkdir(path_outN);
+                path_out{f} = path_outN;
+            else
+                fprintf(1, 'invalid decimation factor: %s %s (d = %i) fs = %.0f Hz ...skipping\n', ...
+                    dasbrNum, stNum, d, info.SampleRate)
+                continue
+            end
+        end % fsNew
         
-        
-        % define new sample rates. **Make sure a evenly divide into full SR**
-        fs0 = info.SampleRate;
-        fs1 = fs0/288; % 1 kHz
-        %     fs2 = fs0/60; % 4.8 kHz
-        fs3 = fs0/30; % 9.6 kHz
-        
-        path_out1 = [drive cruise '_DASBR\Recordings\decimated\1kHz\' dasbrNum '_1kHz\'];
-        mkdir(path_out1);
-        %     path_out2 = [drive cruise '_DASBR\Recordings\decimated\4.8kHz\' dasbrNum '_4.8kHz\'];
-        %     mkdir(path_out2);
-        path_out3 = [drive cruise '_DASBR\Recordings\decimated\9.6kHz\' dasbrNum '_9.6kHz\'];
-        mkdir(path_out3);
-        
-        for f = 1:length(wavFiles)
+        for wf = 1:length(wavFiles)
             try
-                [data, fs] = audioread([path_raw wavFiles(f,1).name]);
+                [data, fs] = audioread([path_raw wavFiles(wf,1).name]);
                 
-                % data1 = resample(data, fs1, fs);
-                data1 = decimate(data,fs0/fs1);
-                % data2 = resample(data, fs2, fs);
-                % data2 = decimate(data,fs0/fs2);
-                % data3 = resample(data, fs2, fs);
-                data3 = decimate(data,fs0/fs3);
-                
-                audiowrite([path_out1 wavFiles(f,1).name(1:end-4) '_1kHz.wav'], data1, fs1);
-                % audiowrite([path_out2 wavFiles(f,1).name(1:end-4) '_4.8kHz.wav'], data2, fs2);
-                audiowrite([path_out3 wavFiles(f,1).name(1:end-4) '_9.6kHz.wav'], data3, fs3);
-                
+                for g = 1:length(df)
+                    dataNew = decimate(data, df(g));
+                    %                     dataNew = resample(data, fsNew(g), fs);
+                    audiowrite([path_out{g} wavFiles(wf,1).name(1:end-4) ...
+                        '_' fsNewStr{g} '.wav'], dataNew, fsNew(g));
+                end
                 %             fprintf(1, '%s - file #%i: %s processed\n', datestr(now), f, wavFiles(f,1).name);
                 
             catch
                 fprintf(1, 'ATTENTION: %s - file #%i: %s corrupt\n', datestr(now), f, wavFiles(f,1).name);
             end
-        end % wavFiles
-        fprintf(1, '%s DONE\n', dasbrNum)
-    elseif isempty(wavFiles)
-        fprintf(1, '%s: no wav files\n', dasbrNum);
-    end
+        end %loop through wavFiles
+    end % wavFile check
+    fprintf(1, '%s DONE\n', dasbrNum)
 end % end dasbrs
