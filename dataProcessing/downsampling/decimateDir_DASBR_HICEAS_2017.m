@@ -1,48 +1,36 @@
-% downsample WHICEAS 2020 DASBR data for baleen whale analysis
+% downsample HICEAS 2017 DASBR data for baleen whale analysis
 
 % **use DECIMATE instead of RESAMPLE (decimate function is what triton's
 % decimate feature uses)
-
 
 clear all
 % clc
 warning('off')
 
-drive = 'R:\';
-cruise = 'WHICEAS_2020';
+drive = 'Q:\';
+cruise = 'HICEAS_2017';
 
 % define new sample rates in Hz. **Make sure can evenly divide into full SR**
 % decimation factor calculated below
 % fs0 = info.SampleRate;
 fsNew = [1000 9600]; % in Hz, can have multiple values e.g., [1000 5000]
 
-% % single dasbr
-% dasbrNum = 'DS2';
-% stNum = 'ST-2';
-% serial = '1208766495'; %inner folder name and prefix of all wave filenames
-
 % loop through all dasbrs
-dasbrList = dir([drive cruise '_DASBR\Recordings\DS*']);
-% *note...no .wav files for DS5 (indx = 9)
+dasbrList = dir([drive cruise '_DASBR\Recordings\*ST*']);
 
-for d = 7 % 1:length(dasbrList)
+for d = 1:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
-    stFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\ST*']);
-    stNum = stFolder.name;
-    srFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\' stFolder.name]);
-    srFolder(~[srFolder.isdir])= []; %Remove all non directories.
-    serial = setdiff({srFolder.name},{'.','..'});
-    serial =  serial{:};  %inner folder name and prefix of all wave filenames
-    % double check serial folder is a long number
-    if ~isnumeric(str2double( serial))
+    sFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\1*']);
+    serial =  sFolder.name;  %inner folder name and prefix of all wave filenames
+    % double check serial is a long number
+    if ~isnumeric(str2double(serial))
         pause;
     elseif isnumeric(str2double(serial))
         fprintf(1, 'Serial is good...');
     end
     
-    path_raw = [drive cruise '_DASBR\Recordings\' dasbrNum '\' stNum '\' ...
-        serial '\'];
+    path_raw = [drive cruise '_DASBR\Recordings\' dasbrNum '\' serial '\'];
     % cd(path_raw);
     wavFiles = dir([path_raw '*.wav']);
     
@@ -77,19 +65,18 @@ for d = 7 % 1:length(dasbrList)
         for wf = 1:length(wavFiles)
             try
                 [data, fs] = audioread([path_raw wavFiles(wf,1).name]);
-                
                 for g = 1:length(df)
                     dataNew = decimate(data, df(g));
                     %                     dataNew = resample(data, fsNew(g), fs);
                     audiowrite([path_out{g} wavFiles(wf,1).name(1:end-4) ...
                         '_' fsNewStr{g} '.wav'], dataNew, fsNew(g));
                 end
-                %             fprintf(1, '%s - file #%i: %s processed\n', datestr(now), f, wavFiles(f,1).name);
+                %         fprintf(1, '%s - file #%i: %s processed\n', datestr(now), f, wavFiles(f,1).name);
                 
             catch
                 fprintf(1, 'ATTENTION: %s - file #%i: %s corrupt\n', datestr(now), f, wavFiles(f,1).name);
             end
-        end %loop through wavFiles
+        end % loop through wav Files
     end % wavFile check
     fprintf(1, '%s DONE\n', dasbrNum)
-end % end dasbrs
+end % dasbrs
