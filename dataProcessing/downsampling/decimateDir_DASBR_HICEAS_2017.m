@@ -18,7 +18,7 @@ fsNew = [1000 9600]; % in Hz, can have multiple values e.g., [1000 5000]
 % loop through all dasbrs
 dasbrList = dir([drive cruise '_DASBR\Recordings\*ST*']);
 
-for d = 1:length(dasbrList)
+for d = 5:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
     sFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\1*']);
@@ -74,7 +74,7 @@ for d = 1:length(dasbrList)
                 %         fprintf(1, '%s - file #%i: %s processed\n', datestr(now), f, wavFiles(f,1).name);
                 
             catch
-                fprintf(1, 'ATTENTION: %s - file #%i: %s corrupt\n', datestr(now), f, wavFiles(f,1).name);
+                fprintf(1, 'ATTENTION: %s - file #%i: %s corrupt\n', datestr(now), wf, wavFiles(wf,1).name);
             end
         end % loop through wav Files
     end % wavFile check
