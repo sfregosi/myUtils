@@ -23,7 +23,6 @@ fsNew = [1000 9600]; % in Hz, can have multiple values e.g., [1000 5000]
 
 % loop through all dasbrs
 dasbrList = dir([drive cruise '_DASBR\Recordings\DS*']);
-% *note...no .wav files for DS5 (indx = 9)
 
 for d = 1:length(dasbrList)
     dasbrNum = dasbrList(d).name;
