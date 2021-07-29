@@ -43,13 +43,13 @@ for d = 8; %1:length(dasbrList)
     path_raw = [drive cruise '_DASBR\Recordings\' dasbrNum '\' stNum '\' ...
         serial '\'];
     % cd(path_raw);
-    wavFiles = dir([path_raw '*.wav']);
+    wavFiles = dir([path_raw '\**\*.wav']); % need to look in subdirectory for DS8
     
     if isempty(wavFiles)% check that there are actually wav files
         fprintf(1, '%s: no wav files\n', dasbrNum);
         continue
     elseif ~isempty(wavFiles)
-        info = audioinfo([path_raw wavFiles(1,1).name]);
+        info = audioinfo([wavFiles(1,1).folder '\' wavFiles(1,1).name]);
         fprintf(1, 'sample rate: %0.f Hz\n', info.SampleRate)
         df = zeros(length(fsNew),1); % decimation factor(s)
         path_out = cell(length(fsNew),1);
@@ -75,7 +75,7 @@ for d = 8; %1:length(dasbrList)
         
         for wf = 1:length(wavFiles)
             try
-                [data, fs] = audioread([path_raw wavFiles(wf,1).name]);
+                [data, fs] = audioread([wavFiles(wf,1).folder '\' wavFiles(wf,1).name]);
                 
                 for g = 1:length(df)
                     dataNew = decimate(data, df(g));
