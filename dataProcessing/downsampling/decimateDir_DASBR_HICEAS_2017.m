@@ -16,21 +16,28 @@ cruise = 'HICEAS_2017';
 fsNew = [1000 9600]; % in Hz, can have multiple values e.g., [1000 5000]
 
 % loop through all dasbrs
-dasbrList = dir([drive cruise '_DASBR\Recordings\*ST*']);
+dasbrList = dir([drive cruise '_DASBR\Recordings\DS*']);
 
-for d = 5:length(dasbrList)
+for d = 8 %1:length(dasbrList)
     dasbrNum = dasbrList(d).name;
     fprintf(1, 'Starting %s\n', dasbrNum)
-    sFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\1*']);
-    serial =  sFolder.name;  %inner folder name and prefix of all wave filenames
-    % double check serial is a long number
-    if ~isnumeric(str2double(serial))
-        pause;
-    elseif isnumeric(str2double(serial))
-        fprintf(1, 'Serial is good...');
+    stFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\*ST*']);
+    
+    if ~strcmp(dasbrNum, 'DS3') % skip DS3 bc Navy scrubbed. see below for DS3
+        srFolder = dir([drive cruise '_DASBR\Recordings\' dasbrNum '\' stFolder.name '\1*']);
+        serial =  srFolder.name;  %inner folder name and prefix of all wave filenames
+        % double check serial is a long number
+        if ~isnumeric(str2double(serial))
+            pause;
+        elseif isnumeric(str2double(serial))
+            fprintf(1, 'Serial is good...');
+        end
+        path_raw = [srFolder.folder '\' serial '\'];
+    elseif strcmp(dasbrNum, 'DS3') % decimate Navy approved data
+        serial = '1678532634';
+        path_raw = [stFolder.folder '\SWFSC_ST-D\_Navy_Approved_Recordings\DS3\'];
     end
     
-    path_raw = [drive cruise '_DASBR\Recordings\' dasbrNum '\' serial '\'];
     % cd(path_raw);
     wavFiles = dir([path_raw '*.wav']);
     
@@ -51,8 +58,13 @@ for d = 5:length(dasbrList)
                 fprintf(1,'decimation factor (%0.f) is good\n', dfN);
                 df(f) = dfN;
                 fsNewStr{f} = [num2str(fsN/1000) 'kHz'];% new sample rate in string as kHz (for file names)
-                path_outN = [drive cruise '_DASBR\Recordings\decimated\' ...
-                    fsNewStr{f} '\' dasbrNum '_' fsNewStr{f} '\'];
+                if ~strcmp(dasbrNum, 'DS3')
+                    path_outN = [drive cruise '_DASBR\Recordings\decimated\' ...
+                        fsNewStr{f} '\' dasbrNum '_' fsNewStr{f} '\'];
+                elseif strcmp(dasbrNum, 'DS3')
+                    path_outN = [drive cruise '_DASBR\Recordings\decimated\' ...
+                        fsNewStr{f} '\' dasbrNum '_' fsNewStr{f} '_NavyApproved\'];
+                end
                 mkdir(path_outN);
                 path_out{f} = path_outN;
             else

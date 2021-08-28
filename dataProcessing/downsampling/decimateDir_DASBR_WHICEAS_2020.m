@@ -35,7 +35,7 @@ for d = 7 % 1:length(dasbrList)
     serial = setdiff({srFolder.name},{'.','..'});
     serial =  serial{:};  %inner folder name and prefix of all wave filenames
     % double check serial folder is a long number
-    if ~isnumeric(str2double( serial))
+    if ~isnumeric(str2double(serial))
         pause;
     elseif isnumeric(str2double(serial))
         fprintf(1, 'Serial is good...');
