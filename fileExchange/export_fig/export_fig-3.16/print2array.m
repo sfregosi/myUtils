@@ -61,6 +61,7 @@ function [A, bcol, alpha] = print2array(fig, res, renderer, gs_options)
 % 07/10/20: Use JavaFrame_I where possible, to avoid evoking a JavaFrame warning
 % 07/03/21: Fixed edge-case in case a non-figure handle was provided as input arg
 % 10/03/21: Forced a repaint at top of function to ensure accurate image snapshot (issue #211)
+% 26/08/21: Added a short pause to avoid unintended image cropping (issue #318)
 %}
 
     % Generate default input arguments, if needed
@@ -75,6 +76,8 @@ function [A, bcol, alpha] = print2array(fig, res, renderer, gs_options)
     set(fig, 'Units', 'pixels');
     px = get(fig, 'Position');
     set(fig, 'Units', old_mode);
+
+    pause(0.02);  % add a short pause to avoid unintended cropping (issue #318)
 
     % Retrieve the background colour
     bcol = get(fig, 'Color');
