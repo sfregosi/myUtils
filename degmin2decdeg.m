@@ -19,7 +19,7 @@ decdeg=zeros(length(degmin(:,1)),1);
 for f=1:length(degmin(:,1))
     dec=degmin(f,2)/60;
     deg=degmin(f,1);
-    if deg>0;
+    if deg>0
         decdeg(f,1)=deg+dec;
     else
         decdeg(f,1)=deg-dec;
