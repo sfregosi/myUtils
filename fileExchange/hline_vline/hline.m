@@ -1,4 +1,4 @@
-function hhh=hline(y,in1, LW, in2)
+function hhh=hline(y, in1, LW, in2)
 % function h=hline(y, linetype, lineWidth, label)
 %
 % Draws a horizontal line on the current axes at the location specified by 'y'.  Optional arguments are
@@ -33,6 +33,7 @@ if length(y)>1  % vector input
         switch nargin
             case 1
                 linetype='r:';
+                LW = 1;
                 label='';
             case 2
                 if ~iscell(in1)
@@ -43,8 +44,20 @@ if length(y)>1  % vector input
                 else
                     linetype=in1{I};
                 end
+                LW = 1;
                 label='';
             case 3
+                if ~iscell(in1)
+                    in1={in1};
+                end
+                if I>length(in1)
+                    linetype=in1{end};
+                else
+                    linetype=in1{I};
+                end
+                LW = LW;
+                label = '';
+            case 4
                 if ~iscell(in1)
                     in1={in1};
                 end
@@ -55,14 +68,15 @@ if length(y)>1  % vector input
                     linetype=in1{end};
                 else
                     linetype=in1{I};
-                end
+                end 
+                LW = LW;
                 if I>length(in2)
                     label=in2{end};
                 else
                     label=in2{I};
                 end
         end
-        h(I)=hline(y(I),linetype,label);
+        h(I)=hline(y(I),linetype,LW,label);
     end
 else
     switch nargin
@@ -76,7 +90,7 @@ else
             label='';
         case 3
             linetype=in1;
-            LW = 1;
+            LW = LW;
             label='';
         case 4
             linetype=in1;
