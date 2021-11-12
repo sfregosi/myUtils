@@ -1,7 +1,11 @@
 %Convert file names for LTSA in Triton
 
 
-path_data = 'S:\MACS_2021_DASBR\decimated\9.6kHz\';
+% path_data = 'S:\MACS_2021_DASBR\decimated\9.6kHz\';
+% path_data = 'R:\WHICEAS_2020_DASBR\Recordings\decimated\9.6kHz\';
+% path_data = 'Q:\HICEAS_2017_DASBR\Recordings\decimated\9.6kHz\';
+path_data = 'Q:\MACS_2018_DASBR\Recordings\decimated\9.6kHz\';
+
 folders = dir(path_data);
 for g = 3:length(folders)
     
