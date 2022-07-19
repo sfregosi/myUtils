@@ -1,0 +1,208 @@
+function myNewFun(fxnName, inputs, outputs)
+%MYNEWFUN creates a function m-file with proper help info from template
+%
+% Syntax:
+%   myNewFun(fxnName)
+%   myNewFun(fxnName, inputs, outputs)
+%
+% Description:
+%   myNewFun(fxnName) creates a function file according to the
+%   template and opens it in the editor.
+%
+%   myNewFun(fxnName, inputs, outputs) also fills inputs and outputs.
+%   Use empty string to indicate no inputs or outputs.
+%
+% Inputs:
+%   fxnName     name of new function, as char string
+%   inputs      optional argument, input variable names either as char 
+%               string for single input, or cell array for multiple inputs
+%               e.g., {'in1', 'in2'} or 'in'
+%   outputs     optional argument, output variable names either as char 
+%               string for single output, or cell array for multiple outputs
+%               e.g., {'out1', 'out2'} or 'out'
+%
+% Outputs:
+%   None. The function creates a new m-file and opens it in the editor
+%
+% Examples:
+%   myNewFun myfun
+%   myNewFun myfun 'input1, input2' 'output1, output2'
+%
+% See also:
+%
+% Authors:
+%   S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
+%
+% First version:   2022 18 July
+% Updated:         2022 18 July
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %%%%%%%%%%%%%%%%
+% CHECK INPUT
+% %%%%%%%%%%%%%%%%
+
+narginchk(1, 3);
+
+if nargin < 2
+    inputs = 'input';
+end
+if nargin < 3
+    outputs = 'output';
+end
+
+% check inputs/outputs valid formats
+inSz = checkArgs(inputs);
+outSz = checkArgs(outputs);
+
+% check whether function already exists - only if given as input
+if ~isempty(fxnName)
+    fxnCheck = which(fxnName);
+    if ~isempty(fxnCheck)
+        error('%s already exists: %s',fxnName,fxnCheck)
+    end
+end
+
+% %%%%%%%%%%%%%%%%
+% PREP INFO
+% %%%%%%%%%%%%%%%%
+
+% create the properly formatted call
+call =              formatCall(fxnName, inputs, outputs);
+oneLinePrompt =     'One-line description here, please';
+descriptionPrompt = 'Detailed description here, please';
+username =          'S. Fregosi';
+userEmail =         'selene.fregosi@gmail.com';
+userGitHub =        'https://github.com/sfregosi';
+
+% %%%%%%%%%%%%%%%%
+% WRITE FUNCTION
+% %%%%%%%%%%%%%%%%
+
+% create the filename based on the function name
+[path, name, extension] = fileparts(fxnName);
+if isempty(extension)
+    fileName = fullfile(path, [name '.m']);
+else
+    fileName = fxnName;
+end
+
+% beginning of file-printing stage
+fid = fopen(fileName,'wt');
+
+fprintf(fid, 'function %s\n', call);
+fprintf(fid, '%%%s %s\n', upper(fxnName), oneLinePrompt);
+fprintf(fid, '%%\n');
+fprintf(fid, '%% Syntax:\n');
+fprintf(fid, '%%\t%s\n', upper(call));
+fprintf(fid, '%%\n');
+fprintf(fid, '%% Description:\n');
+fprintf(fid, '%%\t%s\n',  descriptionPrompt);
+fprintf(fid, '%% Inputs:\n');
+if inSz > 1
+    for f = 1:length(inputs)
+        fprintf(fid, '%%\t%s \t%s\n', inputs{f}, 'describe, please');
+    end
+elseif inSize == 1
+    fprintf(fid, '%%\t%s \t%s\n', inputs, 'describe, please');
+end
+fprintf(fid,'%%\n');
+fprintf(fid, '%% Outputs:\n');
+if outSz > 1
+    for f = 1:length(inputs)
+        fprintf(fid, '%%\t%s \t%s\n', outputs{f}, 'describe, please');
+    end
+elseif outSize == 1
+    fprintf(fid, '%%\t%s \t%s\n', outputs, 'describe, please');
+end
+fprintf(fid, '%%\n');
+fprintf(fid, '%% Examples:\n');
+fprintf(fid, '%%\n');
+fprintf(fid, '%% See also:\n');
+fprintf(fid, '%%\n');
+fprintf(fid, '%%\n');
+fprintf(fid, '%% Authors:\n');
+fprintf(fid, '%%\t%s <%s> <%s>\n', username, userEmail, userGitHub);
+% fprintf(fid, '%% Created with MATLAB ver.: %s on %s\n', version, osConfig);
+fprintf(fid, '%% Created with MATLAB ver.: %s\n', version);
+fprintf(fid, '%%\n');
+fprintf(fid, '%% FirstVersion: \t%s\n', datestr(now,'dd mmmm yyyy'));
+fprintf(fid, '%% Updated:\n');
+fprintf(fid, '%% %s\n',repmat('%',1,72));
+fclose(fid);
+% end of file-printing stage
+
+edit(fileName);
+
+end
+
+% %%%%%%%%%%%%%%%%
+% NESTED FUNCTIONS
+% %%%%%%%%%%%%%%%%
+% user configuration info
+function val = ownConfig(opt)
+keyvals = {
+    'user_name'   'S. Fregosi'
+    'user_email'  'selene.fregosi@gmail.com'
+    'github_url'  'https://github.com/sfregosi'
+    };
+val = keyvals{strcmp(opt, keyvals(:,1)), 2};
+end
+
+% operating system configuration
+function os = osConfig
+% getenv('OS') does not work on Mac. Query the OS like ver.m
+% find platform OS
+if ispc
+    platform = [system_dependent('getos'),' ',system_dependent('getwinsys')];
+elseif ismac
+    [fail, input] = unix('sw_vers');
+    if ~fail
+        platform = strrep(input, 'ProductName:', '');
+        platform = strrep(platform, sprintf('\t'), '');
+        platform = strrep(platform, sprintf('\n'), ' ');
+        platform = strrep(platform, 'ProductVersion:', ' Version: ');
+        platform = strrep(platform, 'BuildVersion:', 'Build: ');
+    else
+        platform = system_dependent('getos');
+    end
+else
+    platform = system_dependent('getos');
+end
+os = platform;
+end
+
+% check inputs/outputs format and size
+function sz = checkArgs(arguments)
+if iscell(arguments)
+    sz = length(arguments);
+elseif ischar(arguments) && size(arguments, 1) == 1
+    sz = 1;
+else
+    fprintf(1, 'incorrect input/output format\n')
+    return
+end
+end
+
+% clean up arguments
+function pretty_arguments = formatArguments(arguments)
+sz = checkArgs(arguments);
+if sz > 1
+    strArgs = string(arguments);
+    fmt = ['%s' repmat(', %s', 1, sz-1)];
+    pretty_arguments = sprintf(fmt, strArgs);
+elseif ischar(arguments) && size(arguments, 1) == 1
+    pretty_arguments = arguments;
+end
+end
+
+function pretty_call = formatCall(name, inputs, outputs)
+pretty_inputs = formatArguments(inputs);
+pretty_outputs = formatArguments(outputs);
+if isempty(pretty_outputs)
+    pretty_call = [name '(' pretty_inputs ')'];
+elseif ismember(',', pretty_outputs)
+    pretty_call = [ '[' pretty_outputs '] = ' name '(' pretty_inputs ')'];
+else
+    pretty_call = [ pretty_outputs ' = ' name '(' pretty_inputs ')'];
+end
+end
