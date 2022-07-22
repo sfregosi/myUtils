@@ -35,8 +35,8 @@ function newFun(fxnName, inputs, outputs)
 %   Authors:
 %       S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
-%   First version:   2022 18 July
-%   Updated:         2022 19 July
+%   First version:   18 July 2022
+%   Updated:         19 July 2022
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%
