@@ -1,10 +1,12 @@
 % rename files
 
 % original files
-path_in = 'D:\sg680_MHI_Apr22\wav';
+% path_in = 'D:\sg680_MHI_Apr22\wav';
+path_in = 'T:\Glider_MHI_Spring_2022\sg680_MHI_Apr2022\recordings\wav\';
 wavFiles = dir(fullfile(path_in, '*.wav') );
 oldNames = {wavFiles.name};
-newNames = regexprep(oldNames, '_HI', '_MHI');
+% newNames = regexprep(oldNames, '_HI', '_MHI');
+newNames = regexprep(oldNames, 'Apr22', 'Apr2022');
 
 for f = 1 : length(oldNames)
     movefile(fullfile(path_in, oldNames{f}), fullfile(path_in, newNames{f}));
