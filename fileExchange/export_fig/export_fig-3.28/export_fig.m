@@ -17,6 +17,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 %   export_fig ... -p<val>
 %   export_fig ... -d<gs_option>
 %   export_fig ... -depsc
+%   export_fig ... -metadata <metaDataInfo>
 %   export_fig ... -<renderer>
 %   export_fig ... -<colorspace>
 %   export_fig ... -append
@@ -32,13 +33,16 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 %   export_fig ... -options <optionsStruct>
 %   export_fig ... -silent
 %   export_fig ... -regexprep <pattern> <replace>
+%   export_fig ... -toolbar
+%   export_fig ... -menubar
 %   export_fig(..., handle)
+%   export_fig(..., figName)
 %
 % This function saves a figure or single axes to one or more vector and/or
 % bitmap file formats, and/or outputs a rasterized version to the workspace,
 % with the following properties:
 %   - Figure/axes reproduced as it appears on screen
-%   - Cropped borders (optional)
+%   - Cropped/padded borders (optional)
 %   - Embedded fonts (vector formats)
 %   - Improved line and grid line styles
 %   - Anti-aliased graphics (bitmap formats)
@@ -157,7 +161,6 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 %             image (default), bitmap, emf, or pdf.
 %             Notes: Only -clipboard (or -clipboard:image, which is the same)
 %                    applies export_fig parameters such as cropping, padding etc.
-%                    Only the emf format supports -transparent background
 %             -clipboard:image  create a bitmap image using export_fig processing
 %             -clipboard:bitmap create a bitmap image as-is (no auto-cropping etc.)
 %             -clipboard:emf is vector format without auto-cropping; Windows-only
@@ -167,6 +170,10 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 %   -depsc -  option to use EPS level-3 rather than the default level-2 print
 %             device. This solves some bugs with Matlab's default -depsc2 device
 %             such as discolored subplot lines on images (vector formats only).
+%   -metadata <metaDataInfo> - adds the specified meta-data information to the
+%             exported file (PDF format only). metaDataInfo must be either a struct
+%             or a cell array with pairs of values: {'fieldName',fieldValue, ...}.
+%             Common metadata fields: Title,Author,Creator,Producer,Subject,Keywords
 %   -update - option to download and install the latest version of export_fig
 %   -version - return the current export_fig version, without any figure export
 %   -nofontswap - option to avoid font swapping. Font swapping is automatically
@@ -193,9 +200,13 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 %             string or array of strings; case-sensitive), with the corresponding
 %             <new> string(s), in EPS/PDF files (only). See regexp function's doc.
 %             Warning: invalid replacement can make your EPS/PDF file unreadable!
-%   handle -  The handle of the figure, axes or uipanels (can be an array of
-%             handles, but the objects must be in the same figure) which is
-%             to be saved. Default: gcf (handle of current figure).
+%   -toolbar - adds an interactive export button to the figure's toolbar
+%   -menubar - adds an interactive export menu to the figure's menubar
+%   handle -  handle of the figure, axes or uipanels (can be an array of handles
+%             but all the objects must be in the same figure) to be exported.
+%             Default: gcf (handle of current figure).
+%   figName - name (title) of the figure to export (e.g. 'Figure 1' or 'My fig').
+%             Overriden by handle (if specified); Default: current figure
 %
 % Outputs:
 %   imageData - MxNxC uint8 image array of the exported image.
@@ -332,6 +343,14 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 % 03/10/21: (3.18) Fixed warning about invalid escaped character when the output folder does not exist (issue #345)
 % 25/10/21: (3.19) Fixed print error when exporting a specific subplot (issue #347); avoid duplicate error messages
 % 11/12/21: (3.20) Added GIF support, including animated & transparent-background; accept format options as cell-array, not just nested struct
+% 20/12/21: (3.21) Speedups; fixed exporting non-current figure (hopefully fixes issue #318); fixed warning when appending to animated GIF
+% 02/03/22: (3.22) Fixed small potential memory leak during screen-capture; expanded exportgraphics message for vector exports; fixed rotated tick labels on R2021a+
+% 02/03/22: (3.23) Added -toolbar and -menubar options to add figure toolbar/menubar items for interactive figure export (issue #73); fixed edge-case bug with GIF export
+% 14/03/22: (3.24) Added support for specifying figure name in addition to handle; added warning when trying to export TIF/JPG/BMP with transparency; use current figure as default handle even when its HandleVisibility is not 'on'
+% 16/03/22: (3.25) Fixed occasional empty files due to excessive cropping (issues #318, #350, #351)
+% 01/05/22: (3.26) Added -transparency option for TIFF files
+% 15/05/22: (3.27) Fixed EPS bounding box (issue #356)
+% 04/12/22: (3.28) Added custom metadata information to PDF files; fixed clipboard export (transparency and gray-scale images; deployed apps; old Matlabs)
 %}
 
     if nargout
@@ -341,33 +360,42 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 
     % Ensure the figure is rendered correctly _now_ so that properties like axes limits are up-to-date
     drawnow;
-    pause(0.02);  % this solves timing issues with Java Swing's EDT (http://undocumentedmatlab.com/blog/solving-a-matlab-hang-problem)
+    pause(0.05);  % this solves timing issues with Java Swing's EDT (http://undocumentedmatlab.com/blog/solving-a-matlab-hang-problem)
 
     % Display promo (just once every 10 days!)
-    try promo_time = getpref('export_fig','promo_time'); catch, promo_time=-inf; end
-    if abs(now-promo_time) > 10 && ~isdeployed
+    persistent promo_time
+    if isempty(promo_time)
+        try promo_time = getpref('export_fig','promo_time'); catch, promo_time=-inf; end
+    end
+    if abs(now-promo_time) > 10 && ~isdeployed %#ok<*TNOW1>
         programsCrossCheck;
         msg = char('Gps!qspgfttjpobm!Nbumbc!bttjtubodf-!qmfbtf!dpoubdu!=%?'-1);
         url = char('iuuqt;00VoepdvnfoufeNbumbc/dpn0dpotvmujoh'-1);
         displayPromoMsg(msg, url);
+        promo_time = now;
         setpref('export_fig','promo_time',now)
     end
 
-    % Parse the input arguments
+    % Use the current figure as the default figure handle
+    % temporarily set ShowHiddenHandles='on' to access figure with HandleVisibility='off'
+    try oldValue = get(0,'ShowHiddenHandles'); set(0,'ShowHiddenHandles','on'); catch, end
     fig = get(0, 'CurrentFigure');
+    try set(0,'ShowHiddenHandles',oldValue); catch, end
+
+    % Parse the input arguments
     argNames = {};
     for idx = nargin:-1:1, argNames{idx} = inputname(idx); end
     [fig, options] = parse_args(nargout, fig, argNames, varargin{:});
 
     % Check for newer version and exportgraphics/copygraphics compatibility
-    currentVersion = 3.20;
+    currentVersion = 3.28;
     if options.version  % export_fig's version requested - return it and bail out
         imageData = currentVersion;
         return
     end
     if ~options.silent
         % Check for newer version (not too often)
-        checkForNewerVersion(3.20);  % ...(currentVersion) is better but breaks in version 3.05- due to regexp limitation in checkForNewerVersion()
+        checkForNewerVersion(currentVersion);  % this breaks in version 3.05- due to regexp limitation in checkForNewerVersion()
 
         % Hint to users to use exportgraphics/copygraphics in certain cases
         alertForExportOrCopygraphics(options);
@@ -382,8 +410,8 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
     else
         oldWarn = warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
         warning off MATLAB:ui:javaframe:PropertyToBeRemoved
-        uifig = handle(ancestor(fig,'figure'));
-        try jf = get(uifig,'JavaFrame_I'); catch, try jf = get(uifig,'JavaFrame'); catch, jf=1; end, end %#ok<JAVFM>
+        hFig = handle(ancestor(fig,'figure'));
+        try jf = get(hFig,'JavaFrame_I'); catch, try jf = get(hFig,'JavaFrame'); catch, jf=1; end, end %#ok<JAVFM>
         warning(oldWarn);
         if isempty(jf)  % this is a uifigure
             %error('export_fig:uifigures','Figures created using the uifigure command or App Designer are not supported by export_fig. See %s for details.', hyperlink('https://github.com/altmany/export_fig/issues/261','issue #261'));
@@ -402,10 +430,10 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
             end
             try
                 % Create an invisible legacy figure at the same position/size as the uifigure
-                hNewFig = figure('Units',uifig.Units, 'Position',uifig.Position, 'MenuBar','none', 'ToolBar','none', 'Visible','off');
+                hNewFig = figure('Units',hFig.Units, 'Position',hFig.Position, 'MenuBar','none', 'ToolBar','none', 'Visible','off');
                 % Copy the uifigure contents onto the new invisible legacy figure
                 try
-                    hChildren = allchild(uifig); %=uifig.Children;
+                    hChildren = allchild(hFig); %=uifig.Children;
                     copyobj(hChildren,hNewFig);
                 catch
                     if ~options.silent
@@ -437,6 +465,16 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                 rethrow(err)
             end
         end
+    end
+
+    % If toolbar button was requested, add it to the specified figure(s)
+    if options.toolbar
+        addToolbarButton(hFig, options);
+    end
+
+    % If menubar menu was requested, add it to the specified figure(s)
+    if options.menubar
+        addMenubarMenu(hFig, options);
     end
 
     % Isolate the subplot, if it is one
@@ -477,25 +515,29 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
         Hlims = findall(fig, 'Type', 'axes');
         if ~cls
             % Record the old axes limit and tick modes
-            Xlims = make_cell(get(Hlims, 'XLimMode'));
-            Ylims = make_cell(get(Hlims, 'YLimMode'));
-            Zlims = make_cell(get(Hlims, 'ZLimMode'));
-            Xtick = make_cell(get(Hlims, 'XTickMode'));
-            Ytick = make_cell(get(Hlims, 'YTickMode'));
-            Ztick = make_cell(get(Hlims, 'ZTickMode'));
-            Xlabel = make_cell(get(Hlims, 'XTickLabelMode')); 
-            Ylabel = make_cell(get(Hlims, 'YTickLabelMode')); 
-            Zlabel = make_cell(get(Hlims, 'ZTickLabelMode')); 
+            Xlims  = make_cell(get(Hlims, 'XLimMode'));
+            Ylims  = make_cell(get(Hlims, 'YLimMode'));
+            Zlims  = make_cell(get(Hlims, 'ZLimMode'));
+            Xtick  = make_cell(get(Hlims, 'XTickMode'));
+            Ytick  = make_cell(get(Hlims, 'YTickMode'));
+            Ztick  = make_cell(get(Hlims, 'ZTickMode'));
+            Xlabel = make_cell(get(Hlims, 'XTickLabelMode'));
+            Ylabel = make_cell(get(Hlims, 'YTickLabelMode'));
+            Zlabel = make_cell(get(Hlims, 'ZTickLabelMode'));
+            try  % XTickLabelRotation etc. was added in R2021a
+                Xtkrot = make_cell(get(Hlims, 'XTickLabelRotationMode'));
+                Ytkrot = make_cell(get(Hlims, 'YTickLabelRotationMode'));
+                Ztkrot = make_cell(get(Hlims, 'ZTickLabelRotationMode'));
+            catch
+            end % only in R2021a+
         end
 
         % Set all axes limit and tick modes to manual, so the limits and ticks can't change
         % Fix Matlab R2014b bug (issue #34): plot markers are not displayed when ZLimMode='manual'
-        set(Hlims, 'XLimMode', 'manual', 'YLimMode', 'manual');
-        set_tick_mode(Hlims, 'X');
-        set_tick_mode(Hlims, 'Y');
+        set_manual_axes_modes(Hlims, 'X');
+        set_manual_axes_modes(Hlims, 'Y');
         if ~using_hg2(fig)
-            set(Hlims,'ZLimMode', 'manual');
-            set_tick_mode(Hlims, 'Z');
+            set_manual_axes_modes(Hlims, 'Z');
         end
     catch
         % ignore - fix issue #4 (using HG2 on R2014a and earlier)
@@ -576,101 +618,105 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
             % Print large version to array
             [A, tcol, alpha] = getFigImage(fig, magnify, renderer, options, pixelpos);
             % Get the background colour
-            if options.transparent && (options.png || options.alpha || options.gif)
-                try %options.aa_factor < 4  % default, faster but lines are not anti-aliased
-                    % If all pixels are indicated as opaque (i.e. something went wrong with the Java screen-capture)
-                    isBgColor = A(:,:,1) == tcol(1) & ...
-                                A(:,:,2) == tcol(2) & ...
-                                A(:,:,3) == tcol(3);
-                    % Set the bgcolor pixels to be fully-transparent
-                    A(repmat(isBgColor,[1,1,3])) = 254; %=off-white % TODO: more memory efficient without repmat
-                    alpha(isBgColor) = 0;
-                catch  % older logic - much slower and causes figure flicker
-                    if true  % to fold the code below...
-                    % Get out an alpha channel
-                    % MATLAB "feature": black colorbar axes can change to white and vice versa!
-                    hCB = findall(fig, 'Type','axes', 'Tag','Colorbar');
-                    if isempty(hCB)
-                        yCol = [];
-                        xCol = [];
-                    else
-                        yCol = get(hCB, 'YColor');
-                        xCol = get(hCB, 'XColor');
-                        if iscell(yCol)
-                            yCol = cell2mat(yCol);
-                            xCol = cell2mat(xCol);
-                        end
-                        yCol = sum(yCol, 2);
-                        xCol = sum(xCol, 2);
-                    end
-                    % MATLAB "feature": apparently figure size can change when changing
-                    % colour in -nodisplay mode
-                    % Set the background colour to black, and set size in case it was
-                    % changed internally
-                    set(fig, 'Color', 'k', 'Position', pos);
-                    % Correct the colorbar axes colours
-                    set(hCB(yCol==0), 'YColor', [0 0 0]);
-                    set(hCB(xCol==0), 'XColor', [0 0 0]);
-                    % Correct black axes color to off-black (issue #249)
-                    hAxes = findall(fig, 'Type','axes');
-                    [hXs,hXrs] = fixBlackAxle(hAxes, 'XColor');
-                    [hYs,hYrs] = fixBlackAxle(hAxes, 'YColor');
-                    [hZs,hZrs] = fixBlackAxle(hAxes, 'ZColor');
+            if options.transparent
+                if (options.png || options.alpha || options.gif || options.tif)
+                    try %options.aa_factor < 4  % default, faster but lines are not anti-aliased
+                        % If all pixels are indicated as opaque (i.e. something went wrong with the Java screen-capture)
+                        isBgColor = A(:,:,1) == tcol(1) & ...
+                                    A(:,:,2) == tcol(2) & ...
+                                    A(:,:,3) == tcol(3);
+                        % Set the bgcolor pixels to be fully-transparent
+                        A(repmat(isBgColor,[1,1,3])) = 254; %=off-white % TODO: more memory efficient without repmat
+                        alpha(isBgColor) = 0;
+                    catch  % older logic - much slower and causes figure flicker
+                        if true  % to fold the code below...
+                            % Get out an alpha channel
+                            % MATLAB "feature": black colorbar axes can change to white and vice versa!
+                            hCB = findall(fig, 'Type','axes', 'Tag','Colorbar');
+                            if isempty(hCB)
+                                yCol = [];
+                                xCol = [];
+                            else
+                                yCol = get(hCB, 'YColor');
+                                xCol = get(hCB, 'XColor');
+                                if iscell(yCol)
+                                    yCol = cell2mat(yCol);
+                                    xCol = cell2mat(xCol);
+                                end
+                                yCol = sum(yCol, 2);
+                                xCol = sum(xCol, 2);
+                            end
+                            % MATLAB "feature": apparently figure size can change when changing
+                            % colour in -nodisplay mode
+                            % Set the background colour to black, and set size in case it was
+                            % changed internally
+                            set(fig, 'Color', 'k', 'Position', pos);
+                            % Correct the colorbar axes colours
+                            set(hCB(yCol==0), 'YColor', [0 0 0]);
+                            set(hCB(xCol==0), 'XColor', [0 0 0]);
+                            % Correct black axes color to off-black (issue #249)
+                            hAxes = findall(fig, 'Type','axes');
+                            [hXs,hXrs] = fixBlackAxle(hAxes, 'XColor');
+                            [hYs,hYrs] = fixBlackAxle(hAxes, 'YColor');
+                            [hZs,hZrs] = fixBlackAxle(hAxes, 'ZColor');
 
-                    % The following code might cause out-of-memory errors
-                    try
-                        % Print large version to array
-                        B = print2array(fig, magnify, renderer);
-                        % Downscale the image
-                        B = downsize(single(B), options.aa_factor);
-                    catch
-                        % This is more conservative in memory, but kills transparency (issue #58)
-                        B = single(print2array(fig, magnify/options.aa_factor, renderer));
-                    end
+                            % The following code might cause out-of-memory errors
+                            try
+                                % Print large version to array
+                                B = print2array(fig, magnify, renderer);
+                                % Downscale the image
+                                B = downsize(single(B), options.aa_factor);
+                            catch
+                                % This is more conservative in memory, but kills transparency (issue #58)
+                                B = single(print2array(fig, magnify/options.aa_factor, renderer));
+                            end
 
-                    % Set background to white (and set size)
-                    set(fig, 'Color', 'w', 'Position', pos);
-                    % Correct the colorbar axes colours
-                    set(hCB(yCol==3), 'YColor', [1 1 1]);
-                    set(hCB(xCol==3), 'XColor', [1 1 1]);
-                    % Revert the black axes colors
-                    set(hXs, 'XColor', [0,0,0]);
-                    set(hYs, 'YColor', [0,0,0]);
-                    set(hZs, 'ZColor', [0,0,0]);
-                    set(hXrs, 'Color', [0,0,0]);
-                    set(hYrs, 'Color', [0,0,0]);
-                    set(hZrs, 'Color', [0,0,0]);
+                            % Set background to white (and set size)
+                            set(fig, 'Color', 'w', 'Position', pos);
+                            % Correct the colorbar axes colours
+                            set(hCB(yCol==3), 'YColor', [1 1 1]);
+                            set(hCB(xCol==3), 'XColor', [1 1 1]);
+                            % Revert the black axes colors
+                            set(hXs, 'XColor', [0,0,0]);
+                            set(hYs, 'YColor', [0,0,0]);
+                            set(hZs, 'ZColor', [0,0,0]);
+                            set(hXrs, 'Color', [0,0,0]);
+                            set(hYrs, 'Color', [0,0,0]);
+                            set(hZrs, 'Color', [0,0,0]);
 
-                    % The following code might cause out-of-memory errors
-                    try
-                        % Print large version to array
-                        A = print2array(fig, magnify, renderer);
-                        % Downscale the image
-                        A = downsize(single(A), options.aa_factor);
-                    catch
-                        % This is more conservative in memory, but kills transparency (issue #58)
-                        A = single(print2array(fig, magnify/options.aa_factor, renderer));
-                    end
+                            % The following code might cause out-of-memory errors
+                            try
+                                % Print large version to array
+                                A = print2array(fig, magnify, renderer);
+                                % Downscale the image
+                                A = downsize(single(A), options.aa_factor);
+                            catch
+                                % This is more conservative in memory, but kills transparency (issue #58)
+                                A = single(print2array(fig, magnify/options.aa_factor, renderer));
+                            end
 
-                    % Workaround for issue #15
-                    szA = size(A);
-                    szB = size(B);
-                    if ~isequal(szA,szB)
-                        A = A(1:min(szA(1),szB(1)), 1:min(szA(2),szB(2)), :);
-                        B = B(1:min(szA(1),szB(1)), 1:min(szA(2),szB(2)), :);
-                        if ~options.silent
-                            warning('export_fig:bitmap:sizeMismatch','Problem detected by export_fig generation of a bitmap image; the generated export may look bad. Try to reduce the figure size to fit the screen, or avoid using export_fig''s -transparent option.')
-                        end
+                            % Workaround for issue #15
+                            szA = size(A);
+                            szB = size(B);
+                            if ~isequal(szA,szB)
+                                A = A(1:min(szA(1),szB(1)), 1:min(szA(2),szB(2)), :);
+                                B = B(1:min(szA(1),szB(1)), 1:min(szA(2),szB(2)), :);
+                                if ~options.silent
+                                    warning('export_fig:bitmap:sizeMismatch','Problem detected by export_fig generation of a bitmap image; the generated export may look bad. Try to reduce the figure size to fit the screen, or avoid using export_fig''s -transparent option.')
+                                end
+                            end
+                            % Compute the alpha map
+                            alpha = round(sum(B - A, 3)) / (255 * 3) + 1;
+                            A = alpha;
+                            A(A==0) = 1;
+                            A = B ./ A(:,:,[1 1 1]);
+                            clear B
+                        end %folded code...
                     end
-                    % Compute the alpha map
-                    alpha = round(sum(B - A, 3)) / (255 * 3) + 1;
-                    A = alpha;
-                    A(A==0) = 1;
-                    A = B ./ A(:,:,[1 1 1]);
-                    clear B
-                    end %folded code...
+                    %A = uint8(A);
+                else  % JPG,BMP
+                    warning('export_fig:unsupported:background','Matlab cannot set transparency when exporting JPG/BMP image files (see imwrite function documentation)')
                 end
-                %A = uint8(A);
             end
             % Downscale the image if its size was increased (for anti-aliasing)
             if size(A,1) > 1.1 * options.magnify * pixelpos(4) %1.1 to avoid edge-cases
@@ -769,17 +815,45 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                 else
                     img = A;
                 end
-                append_mode = {'overwrite', 'append'};
-                format_options = getFormatOptions(options, 'tif');  %Issue #269
-                imwrite(img, [options.name '.tif'], 'Resolution',options.magnify*get(0,'ScreenPixelsPerInch'), 'WriteMode',append_mode{options.append+1}, format_options{:});
+                resolution = options.magnify * get(0,'ScreenPixelsPerInch');
+                filename = [options.name '.tif'];
+                if options.transparent && any(alpha(:) < 1) && any(isBgColor(:))
+                    % Need to use low-level Tiff library since imwrite/writetif doesn't support alpha channel
+                    alpha8 = uint8(alpha*255);
+                    tag = ['Matlab ' version ' export_fig v' num2str(currentVersion)];
+                    mode = 'w'; if options.append, mode = 'a'; end
+                    t = Tiff(filename,mode); %R2009a or newer
+                    %See https://www.awaresystems.be/imaging/tiff/tifftags/baseline.html
+                    t.setTag('ImageLength',    size(img,1));
+                    t.setTag('ImageWidth',     size(img,2)); 
+                    t.setTag('Photometric',         Tiff.Photometric.RGB);
+                    t.setTag('Compression',         Tiff.Compression.Deflate); 
+                    t.setTag('PlanarConfiguration', Tiff.PlanarConfiguration.Chunky);
+                    t.setTag('ExtraSamples',        Tiff.ExtraSamples.AssociatedAlpha);
+                    t.setTag('ResolutionUnit',      Tiff.ResolutionUnit.Inch);
+                    t.setTag('BitsPerSample',  8);
+                    t.setTag('SamplesPerPixel',size(img,3)+1); %+1=alpha channel
+                    t.setTag('XResolution',    resolution);
+                    t.setTag('YResolution',    resolution);
+                    t.setTag('Software', tag);
+                    t.write(cat(3,img,alpha8));
+                    t.close;
+                else
+                    % Use the builtin imwrite/writetif function
+                    append_mode = {'overwrite', 'append'};
+                    mode = append_mode{options.append+1};
+                    format_options = getFormatOptions(options, 'tif');  %Issue #269
+                    imwrite(img, filename, 'Resolution',resolution, 'WriteMode',mode, format_options{:});
+                end
             end
             if options.gif
+                % TODO - merge contents with im2gif.m
                 % Convert to color-map image required by GIF specification
                 [img, map] = rgb2ind(A, 256);
                 % Handle the case of trying to append to non-existing GIF file
                 % (imwrite() croaks when asked to append to a non-existing file)
                 filename = [options.name '.gif'];
-                options.append = options.append && exist(filename,'file');
+                options.append = options.append && existFile(filename);
                 % Set the default GIF options for imwrite()
                 append_mode = {'overwrite', 'append'};
                 writeMode = append_mode{options.append+1};
@@ -792,14 +866,16 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                     if isempty(alphaIdx) || alphaIdx <= 0, alphaIdx = 1; end
                     % GIF color index of uint8/logical images starts at 0, not 1
                     if ~isfloat(img), alphaIdx = alphaIdx - 1; end
-                    gifOptions = [gifOptions, 'BackgroundColor',alphaIdx, ...
-                                              'TransparentColor',alphaIdx, ...
+                    gifOptions = [gifOptions, 'TransparentColor',alphaIdx, ...
                                               'DisposalMethod','restoreBG'];
+                else
+                    alphaIdx = 1;
                 end
                 if ~options.append
-                    % LoopCount can only be specified in the 1st frame (not in append mode)
+                    % LoopCount and BackgroundColor can only be specified in the
+                    % 1st GIF frame (not in append mode)
                     % Set default LoopCount=65535 to enable looping within MS Office
-                    gifOptions = [gifOptions, 'LoopCount',65535];
+                    gifOptions = [gifOptions, 'LoopCount',65535, 'BackgroundColor',alphaIdx];
                 end
                 % Set GIF-specific options specified by the user (if any)
                 format_options = getFormatOptions(options, 'gif');
@@ -878,7 +954,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
             end
             if ~options.crop
                 % Issue #56: due to internal bugs in Matlab's print() function, we can't use its internal cropping mechanism,
-                % therefore we always use '-loose' (in print2eps.m) and do our own cropping (in crop_borders)
+                % therefore we always use '-loose' (in print2eps.m) and do our own cropping (with crop_borders.m)
                 %printArgs{end+1} = '-loose';
             end
             if any(strcmpi(varargin,'-depsc'))
@@ -964,7 +1040,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                     end
                 catch
                     % Alert in case of error creating output PDF/EPS file (issue #179)
-                    if exist(pdf_nam_tmp, 'file')
+                    if existFile(pdf_nam_tmp)
                         fpath = fileparts(pdf_nam);
                         if ~isempty(fpath) && exist(fpath,'dir')==0
                             errMsg = ['Could not create ' pdf_nam ' - folder "' fpath '" does not exist'];
@@ -1150,7 +1226,14 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                 try
                     set(Hlims(a), 'XLimMode',       Xlims{a},  'YLimMode',       Ylims{a},  'ZLimMode',       Zlims{a},... 
                                   'XTickMode',      Xtick{a},  'YTickMode',      Ytick{a},  'ZTickMode',      Ztick{a},...
-                                  'XTickLabelMode', Xlabel{a}, 'YTickLabelMode', Ylabel{a}, 'ZTickLabelMode', Zlabel{a}); 
+                                  'XTickLabelMode', Xlabel{a}, 'YTickLabelMode', Ylabel{a}, 'ZTickLabelMode', Zlabel{a});
+                  try  % only in R2021a+
+                    set(Hlims(a), 'XTickLabelRotationMode', Xtkrot{a}, ...
+                                  'YTickLabelRotationMode', Ytkrot{a}, ...
+                                  'ZTickLabelRotationMode', Ztkrot{a}); 
+                  catch
+                      % ignore - possibly R2020b or earlier
+                  end
                 catch
                     % ignore - fix issue #4 (using HG2 on R2014a and earlier)
                 end
@@ -1172,22 +1255,6 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
 
         % Output to clipboard (if requested)
         if options.clipboard
-            % Delete the output file if unchanged from the default name ('export_fig_out.png')
-            if strcmpi(options.name,'export_fig_out')
-                try
-                    fileInfo = dir('export_fig_out.png');
-                    if ~isempty(fileInfo)
-                        timediff = now - fileInfo.datenum;
-                        ONE_SEC = 1/24/60/60;
-                        if timediff < ONE_SEC
-                            delete('export_fig_out.png');
-                        end
-                    end
-                catch
-                    % never mind...
-                end
-            end
-
             % Use Java clipboard by default
             if strcmpi(options.clipformat,'image')
                 % Save the image in the system clipboard
@@ -1198,7 +1265,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                     if ~options.silent
                         warning('export_fig:clipboardJava', 'export_fig -clipboard output failed: requires Java to work');
                     end
-                    return;
+                    return
                 end
                 try
                     % Import necessary Java classes
@@ -1207,11 +1274,19 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                     import java.awt.datatransfer.DataFlavor %#ok<SIMPT>
 
                     % Get System Clipboard object (java.awt.Toolkit)
-                    cb = Toolkit.getDefaultToolkit.getSystemClipboard();
+                    cb = Toolkit.getDefaultToolkit.getSystemClipboard; % can't use () in ML6!
 
                     % Add java class (ImageSelection) to the path
                     if ~exist('ImageSelection', 'class')
-                        javaaddpath(fileparts(which(mfilename)), '-end');
+                        % Obtain the directory of the executable (or of the M-file if not deployed)
+                        %javaaddpath(fileparts(which(mfilename)), '-end');
+                        if isdeployed % Stand-alone mode
+                            [status, result] = system('path');  %#ok<ASGLU>
+                            MatLabFilePath = char(regexpi(result, 'Path=(.*?);', 'tokens', 'once'));
+                        else % MATLAB mode.
+                            MatLabFilePath = fileparts(mfilename('fullpath'));
+                        end
+                        javaaddpath(MatLabFilePath, '-end');
                     end
 
                     % Get image size
@@ -1234,7 +1309,11 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                     imageData2 = cat(1, imageData2, alphaData2);
 
                     % Create image buffer
-                    imBuffer = BufferedImage(wd, ht, BufferedImage.TYPE_INT_RGB);
+                    % Note: contrary to print2array & screencapture, which convert
+                    % ^^^^  a Java screencaptured BufferedImage into RGBA and must
+                    %       use TYPE_INT_RGB for this, here we do the reverse and
+                    %       must use TYPE_INT_ARGB to preserve the alpha channel.
+                    imBuffer = BufferedImage(wd, ht, BufferedImage.TYPE_INT_ARGB);
                     imBuffer.setRGB(0, 0, wd, ht, typecast(imageData2(:), 'int32'), 0, wd);
 
                     % Create ImageSelection object from the image buffer
@@ -1274,6 +1353,25 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                 try set(fig,   'Color',originalBgColor); catch, end
                 try set(hAxes, 'Color',originalAxColor); catch, end
                 drawnow; 
+            end
+        end
+
+        % Delete the output file if unchanged from the default name ('export_fig_out.png')
+        % and clipboard, toolbar, and/or menubar were requested
+        if options.clipboard || options.toolbar || options.menubar
+            if strcmpi(options.name,'export_fig_out')
+                try
+                    fileInfo = dir('export_fig_out.png');
+                    if ~isempty(fileInfo)
+                        timediff = now - fileInfo.datenum;
+                        ONE_SEC = 1/24/60/60;
+                        if timediff < ONE_SEC
+                            delete('export_fig_out.png');
+                        end
+                    end
+                catch
+                    % never mind...
+                end
             end
         end
 
@@ -1350,7 +1448,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1>
                 % ignore - maybe an old MAtlab release
             end
             fprintf(2, '\nIf the problem persists, then please %s.\n', hyperlink('https://github.com/altmany/export_fig/issues','report a new issue'));
-            if exist(tmp_nam,'file')
+            if existFile(tmp_nam)
                 fprintf(2, 'In your report, please upload the problematic EPS file: %s (you can then delete this file).\n', tmp_nam);
             end
             fprintf(2, '\n');
@@ -1399,6 +1497,8 @@ function options = default_options()
         'preserve_size',   false, ...
         'silent',          false, ...
         'regexprep',       [], ...
+        'toolbar',         false, ...
+        'menubar',         false, ...
         'gs_options',      {{}});
 end
 
@@ -1410,7 +1510,8 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
 
     % Set the defaults
     native = false; % Set resolution to native of an image
-    options = default_options();
+    defaultOptions = default_options();
+    options = defaultOptions;
     options.im =    (nout == 1);  % user requested imageData output
     options.alpha = (nout == 2);  % user requested alpha output
     options.handleName = '';  % default handle name
@@ -1422,12 +1523,13 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
             skipNext = skipNext-1;
             continue;
         end
-        if all(ishandle(varargin{a}))
-            fig = varargin{a};
+        thisArg = varargin{a};
+        if all(ishandle(thisArg))
+            fig = thisArg;
             options.handleName = argNames{a};
-        elseif ischar(varargin{a}) && ~isempty(varargin{a})
-            if varargin{a}(1) == '-'
-                switch lower(varargin{a}(2:end))
+        elseif ischar(thisArg) && ~isempty(thisArg)
+            if thisArg(1) == '-'
+                switch lower(thisArg(2:end))
                     case 'nocrop'
                         options.crop = false;
                         options.crop_amounts = [0,0,0,0];
@@ -1462,7 +1564,7 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                     case {'gray', 'grey'}
                         options.colourspace = 2;
                     case {'a1', 'a2', 'a3', 'a4'}
-                        options.aa_factor = str2double(varargin{a}(3));
+                        options.aa_factor = str2double(thisArg(3));
                     case 'append'
                         options.append = true;
                     case 'bookmark'
@@ -1526,22 +1628,39 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                     case 'regexprep'
                         options.regexprep = varargin(a+1:a+2);
                         skipNext = 2;
+                    case 'toolbar'
+                        options.toolbar = true;
+                    case 'menubar'
+                        options.menubar = true;
+                    case 'metadata'
+                        % https://unix.stackexchange.com/questions/489230/where-is-metadata-for-pdf-files-can-i-insert-metadata-into-any-pdf-file
+                        % https://www.sejda.com/edit-pdf-metadata
+                        metadata = varargin{a+1};
+                        if isstruct(metadata)
+                            metadata = [fieldnames(metadata),struct2cell(metadata)]';
+                        elseif ~iscell(metadata) || ~ischar(metadata{1}) || mod(length(metadata),2)==1
+                            error('export_fig:BadOptionValue','export_fig metadata must be a struct or cell-array of name-value pairs');
+                        end
+                        metadata = cellfun(@num2str,metadata(:)','uniform',0);
+                        str = sprintf(' /%s (%s)', metadata{:});
+                        options.gs_options{end+1} = ['-c "[' str ' /DOCINFO pdfmark"'];
+                        skipNext = 1;
                     otherwise
                         try
                             wasError = false;
-                            if strcmpi(varargin{a}(1:2),'-d')
-                                varargin{a}(2) = 'd';  % ensure lowercase 'd'
-                                options.gs_options{end+1} = varargin{a};
-                            elseif strcmpi(varargin{a}(1:2),'-c')
-                                if strncmpi(varargin{a},'-clipboard:',11)
+                            if strcmpi(thisArg(1:2),'-d')
+                                thisArg(2) = 'd';  % ensure lowercase 'd'
+                                options.gs_options{end+1} = thisArg;
+                            elseif strcmpi(thisArg(1:2),'-c')
+                                if strncmpi(thisArg,'-clipboard:',11)
                                     wasError = true;
-                                    error('export_fig:BadOptionValue','option ''%s'' cannot be parsed: only image, bitmap, emf and pdf formats are supported',varargin{a});
+                                    error('export_fig:BadOptionValue','option ''%s'' cannot be parsed: only image, bitmap, emf and pdf formats are supported',thisArg);
                                 end
-                                if numel(varargin{a})==2
+                                if numel(thisArg)==2
                                     skipNext = 1;
                                     vals = str2num(varargin{a+1}); %#ok<ST2NM>
                                 else
-                                    vals = str2num(varargin{a}(3:end)); %#ok<ST2NM>
+                                    vals = str2num(thisArg(3:end)); %#ok<ST2NM>
                                 end
                                 if numel(vals)~=4
                                     wasError = true;
@@ -1550,7 +1669,7 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                                 options.crop_amounts = vals;
                                 options.crop = true;
                             else  % scalar parameter value
-                                val = str2double(regexp(varargin{a}, '(?<=-(m|M|r|R|q|Q|p|P))-?\d*.?\d+', 'match'));
+                                val = str2double(regexp(thisArg, '(?<=-(m|M|r|R|q|Q|p|P))-?\d*.?\d+', 'match'));
                                 if isempty(val) || isnan(val)
                                     % Issue #51: improved processing of input args (accept space between param name & value)
                                     val = str2double(varargin{a+1});
@@ -1560,9 +1679,9 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                                 end
                                 if ~isscalar(val) || isnan(val)
                                     wasError = true;
-                                    error('export_fig:BadOptionValue','option %s is not recognised or cannot be parsed', varargin{a});
+                                    error('export_fig:BadOptionValue','option %s is not recognised or cannot be parsed', thisArg);
                                 end
-                                switch lower(varargin{a}(2))
+                                switch lower(thisArg(2))
                                     case 'm'
                                         % Magnification may never be negative
                                         if val <= 0
@@ -1583,16 +1702,50 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                             if wasError  % intentional raise
                                 rethrow(err)
                             else  % unintentional
-                                error('export_fig:BadOption',['Unrecognized export_fig input option: ''' varargin{a} '''']);
+                                error('export_fig:BadOption',['Unrecognized export_fig input option: ''' thisArg '''']);
                             end
                         end
                 end
             else
-                [p, options.name, ext] = fileparts(varargin{a});
-                if ~isempty(p)
+                % test for case of figure name rather than export filename
+                isFigName = false;
+                if isempty(options.handleName)
+                    try
+                        if strncmpi(thisArg,'Figure',6)
+                            [~,~,~,~,e] = regexp(thisArg,'figure\s*(\d+)\s*(:\s*(.*))?','ignorecase');
+                            figNumber = str2double(e{1}{1});
+                            figName = regexprep(e{1}{2},':\s*','');
+                            findProps = {'Number',figNumber};
+                            if ~isempty(figName)
+                                findProps = [findProps,'Name',figName]; %#ok<AGROW>
+                            end
+                        else
+                            findProps = {'Name',thisArg};
+                        end
+                        possibleFig = findall(0,'-depth',1,'Type','figure',findProps{:});
+                        if ~isempty(possibleFig)
+                            fig = possibleFig(1);  % return the 1st figure found
+                            if ~strcmpi(options.name, defaultOptions.name)
+                                continue  % export fname was already specified
+                            else
+                                isFigName = true; %use figure name as export fname
+                            end
+                        end
+                    catch
+                        % ignore - treat as export filename, not figure name
+                    end
+                end
+                % parse the input as a filename, alert if requested folder does not exist
+                [p, options.name, ext] = fileparts(thisArg);
+                if ~isempty(p)  % export folder name/path was specified
                     % Issue #221: alert if the requested folder does not exist
-                    if ~exist(p,'dir'),  error('export_fig:BadPath','Folder %s does not exist!',p);  end
-                    options.name = [p filesep options.name];
+                    if exist(p,'dir')
+                        options.name = fullfile(p, options.name);
+                    elseif ~isFigName
+                        error('export_fig:BadPath','Folder %s does not exist, nor is it the name of any active figure!',p);
+                    else  % isFigName
+                        % specified a figure name so ignore the bad folder part
+                    end
                 end
                 switch lower(ext)
                     case {'.tif', '.tiff'}
@@ -1611,10 +1764,10 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                         options.pdf = true;
                     case '.fig'
                         % If no open figure, then load the specified .fig file and continue
-                        figFilename = varargin{a};
+                        figFilename = thisArg;
                         if isempty(fig)
                             fig = openfig(figFilename,'invisible');
-                            varargin{a} = fig;
+                            %varargin{a} = fig;
                             options.closeFig = true;
                             options.handleName = ['openfig(''' figFilename ''')'];
                         else
@@ -1628,7 +1781,7 @@ function [fig, options] = parse_args(nout, fig, argNames, varargin)
                     case '.gif'
                         options.gif = true;
                     otherwise
-                        options.name = varargin{a};
+                        options.name = thisArg;
                 end
             end
         end
@@ -1827,7 +1980,9 @@ function [A, tcol, alpha] = getFigImage(fig, magnify, renderer, options, pos)
         % MATLAB "feature": figure size can change when changing color in -nodisplay mode
         % Note: figure background is set to off-white, not 'w', to handle common white elements (issue #330)
         set(fig, 'Color',254/255*[1,1,1], 'Position',pos);
-        drawnow;  % repaint figure, otherwise Java screencapture will see black bgcolor
+        % repaint figure, otherwise Java screencapture will see black bgcolor
+        % Yair 19/12/21 - unnecessary: drawnow is called at top of print2array
+        %drawnow;
     end
     % Print large version to array
     try
@@ -1884,7 +2039,10 @@ function add_bookmark(fname, bookmark_text)
     fclose(fh);
 end
 
-function set_tick_mode(Hlims, ax)
+function set_manual_axes_modes(Hlims, ax)
+    % Set the axes limits mode to manual
+    set(Hlims, [ax 'LimMode'], 'manual');
+
     % Set the tick mode of linear axes to manual
     % Leave log axes alone as these are tricky
     M = get(Hlims, [ax 'Scale']);
@@ -1902,6 +2060,14 @@ function set_tick_mode(Hlims, ax)
             props = {[ax 'TickMode'],'manual', [ax 'TickLabelMode'],'manual'};
             tickVals = get(hAxes,[ax 'Tick']);
             tickStrs = get(hAxes,[ax 'TickLabel']);
+            try % TickLabelRotation is available since R2021a
+                propName = [ax,'TickLabelRotationMode'];
+                if ~isempty(get(hAxes,propName)) %this will croak in R2020b-
+                    props = [props, propName,'manual']; %#ok<AGROW>
+                end
+            catch
+                % ignore - probably R2020b or older
+            end
             try % Fix issue #236
                 exponents = [hAxes.([ax 'Axis']).SecondaryLabel];
             catch
@@ -2316,11 +2482,214 @@ function alertForExportOrCopygraphics(options)
                     handleName = 'hFigure';
                 end
                 msg = ['In Matlab R2020a+ you can also use ' funcName '(' handleName filenameParam params ') for simple ' type ' export'];
+                if ~isempty(strfind(params,'''vector''')) %#ok<STREMP> 
+                    msg = [msg ', which could also improve image vectorization, solving rasterization/pixelization problems.'];
+                end
                 oldWarn = warning('on','verbose');
                 warning(['export_fig:' funcName], msg);
                 warning(oldWarn);
                 setpref('export_fig',funcName,params);
             end
         end
+    end
+end
+
+% Does a file exist?
+function flag = existFile(filename)
+    try
+        % isfile() is faster than exist(), but does not report files on path
+        flag = isfile(filename);
+    catch
+        flag = exist(filename,'file') ~= 0;
+    end
+end
+
+% Add interactive export button to the figure's toolbar
+function addToolbarButton(hFig, options)
+    % Ensure we have a valid toolbar handle
+    if isempty(hFig)
+        if options.silent
+            return
+        else
+            error('export_fig:noFigure','not a valid GUI handle');
+        end
+    end
+    set(hFig,'ToolBar','figure');
+    hToolbar = findall(hFig, 'type','uitoolbar', '-depth',1);
+    if isempty(hToolbar)
+        if ~options.silent
+            warning('export_fig:noToolbar','cannot add toolbar button to the specified figure');
+        end
+    end
+    hToolbar = hToolbar(1);  % just in case there are several toolbars... - use only the first
+
+    % Bail out silently if the export_fig button already exists
+    hButton = findall(hToolbar, 'Tag','export_fig');
+    if ~isempty(hButton)
+        return
+    end
+
+    % Prepare the camera icon
+    icon = ['3333333333333333'; ...
+            '3333333333333333'; ...
+            '3333300000333333'; ...
+            '3333065556033333'; ...
+            '3000000000000033'; ...
+            '3022222222222033'; ...
+            '3022220002222033'; ...
+            '3022203110222033'; ...
+            '3022201110222033'; ...
+            '3022204440222033'; ...
+            '3022220002222033'; ...
+            '3022222222222033'; ...
+            '3000000000000033'; ...
+            '3333333333333333'; ...
+            '3333333333333333'; ...
+            '3333333333333333'];
+    cm = [   0      0      0; ...  % black
+             0   0.60      1; ...  % light blue
+          0.53   0.53   0.53; ...  % light gray
+           NaN    NaN    NaN; ...  % transparent
+             0   0.73      0; ...  % light green
+          0.27   0.27   0.27; ...  % gray
+          0.13   0.13   0.13];     % dark gray
+    cdata = ind2rgb(uint8(icon-'0'),cm);
+
+    % If the button does not already exit
+    tooltip = 'Export this figure';
+
+    % Add the button with the icon to the figure's toolbar
+    props = {'Parent',hToolbar, 'CData',cdata, 'Tag','export_fig', ...
+             'Tooltip',tooltip, 'ClickedCallback',@interactiveExport};
+    try
+        hButton = [];  % just in case we croak below
+
+        % Create a new split-button with the open-file button's data
+        oldWarn = warning('off','MATLAB:uisplittool:DeprecatedFunction');
+        hButton = uisplittool(props{:});
+        warning(oldWarn);
+
+        % Add the split-button's menu items
+        drawnow; pause(0.01);  % allow the buttom time to render
+        jButton = get(hButton,'JavaContainer'); %#ok<JAVCT> 
+        jButtonMenu = jButton.getMenuComponent;
+
+        tooltip = [tooltip ' (specify filename/format)'];
+        try jButtonMenu.setToolTipText(tooltip); catch, end
+        try jButton.getComponentPeer.getComponent(1).setToolTipText(tooltip); catch, end
+
+        defaultFname = get(hFig,'Name');
+        if isempty(defaultFname), defaultFname = 'figure'; end
+        imFormats = {'pdf','eps','emf','svg','png','tif','jpg','bmp','gif'};
+        for idx = 1 : numel(imFormats)
+            thisFormat = imFormats{idx};
+            filename = [defaultFname '.' thisFormat];
+            label = [upper(thisFormat) ' image file (' filename ')'];
+            jMenuItem = handle(jButtonMenu.add(label),'CallbackProperties');
+            set(jMenuItem,'ActionPerformedCallback',@(h,e)export_fig(hFig,filename));
+        end
+        jButtonMenu.addSeparator();
+        cbFormats = {'image','bitmap','meta','pdf'};
+        for idx = 1 : numel(cbFormats)
+            thisFormat = cbFormats{idx};
+            exFormat = ['-clipboard:' thisFormat];
+            label = ['Clipboard (' thisFormat ' format)'];
+            jMenuItem = handle(jButtonMenu.add(label),'CallbackProperties');
+            set(jMenuItem,'ActionPerformedCallback',@(h,e)export_fig(hFig,exFormat));
+        end
+        jButtonMenu.addSeparator();
+        jMenuItem = handle(jButtonMenu.add('Select filename and format'),'CallbackProperties');
+        set(jMenuItem,'ActionPerformedCallback',@(h,e)interactiveExport(hFig));
+    catch % revert to a simple documented toolbar pushbutton
+        warning(oldWarn);
+        if isempty(hButton) %avoid duplicate toolbar buttons (keep the splittool)
+            hButton = uipushtool(props{:}); %#ok<NASGU>
+        end
+    end
+end
+
+% Add interactive export menu to the figure's menubar
+function addMenubarMenu(hFig, options)
+    % Ensure we have a valid figure handle
+    if isempty(hFig)
+        if options.silent
+            return
+        else
+            error('export_fig:noFigure','not a valid GUI handle');
+        end
+    end
+    set(hFig,'MenuBar','figure');
+
+    % Bail out silently if the export_fig menu already exists
+    hMainMenu = findall(hFig, '-depth',1, 'type','uimenu', 'Tag','export_fig');
+    if ~isempty(hMainMenu)
+        return
+    end
+
+    % Add the export_fig menu to the figure's menubar
+    hMainMenu = uimenu(hFig, 'Text','E&xport', 'Tag','export_fig');
+    defaultFname = get(hFig,'Name');
+    if isempty(defaultFname), defaultFname = 'figure'; end
+    imFormats = {'pdf','eps','emf','svg','png','tif','jpg','bmp','gif'};
+    for idx = 1 : numel(imFormats)
+        thisFormat = imFormats{idx};
+        filename = [defaultFname '.' thisFormat];
+        label = [upper(thisFormat) ' image file (' filename ')'];
+        uimenu(hMainMenu, 'Text',label, 'MenuSelectedFcn',@(h,e)export_fig(hFig,filename));
+    end
+    cbFormats = {'image','bitmap','meta','pdf'};
+    for idx = 1 : numel(cbFormats)
+        thisFormat = cbFormats{idx};
+        exFormat = ['-clipboard:' thisFormat];
+        label = ['Clipboard (' thisFormat ' format)'];
+        sep = 'off'; if idx==1, sep = 'on'; end
+        uimenu(hMainMenu, 'Text',label, 'Separator',sep, ...
+                          'MenuSelectedFcn',@(h,e)export_fig(hFig,exFormat));
+    end
+    uimenu(hMainMenu, 'Text','Select filename and format', 'Separator','on', ...
+                      'MenuSelectedFcn',@interactiveExport);
+end
+
+% Callback functions for toolbar/menubar actions
+function interactiveExport(hObject, varargin)
+    % Get the exported figure handle
+    hFig = gcbf;
+    if isempty(hFig)
+        hFig = ancestor(hObject, 'figure');
+    end
+    if isempty(hFig)
+        return  % bail out silently if no figure is available
+    end
+
+    % Display a Save-as dialog to let the user select the export name & type
+    defaultFname = get(hFig,'Name');
+    if isempty(defaultFname), defaultFname = 'figure'; end
+    %formats = imformats;
+    formats = {'pdf','eps','emf','svg','png','tif','jpg','bmp','gif', ...
+               'clipboard:image','clipboard:bitmap','clipboard:meta','clipboard:pdf'};
+    for idx = 1 : numel(formats)
+        thisFormat = formats{idx};
+        ext = sprintf('*.%s',thisFormat);
+        if ~any(thisFormat==':')  % image file format
+            description = [upper(thisFormat) ' image file (' ext ')'];
+            format(idx,1:2) = {ext, description}; %#ok<AGROW>
+        else  % clipboard format
+            description = [strrep(thisFormat,':',' (') ' format *.)'];
+            format(idx,1:2) = {'*.*', description}; %#ok<AGROW>
+        end
+    end
+    %format
+    [filename,pathname,idx] = uiputfile(format,'Save figure export as',defaultFname);
+    drawnow; pause(0.01);  % prevent a Matlab hang
+    if ~isequal(filename,0)
+        thisFormat = formats{idx};
+        if ~any(thisFormat==':')  % export to image file
+            filename = fullfile(pathname,filename);
+            export_fig(hFig, filename);
+        else  % export to clipboard
+            export_fig(hFig, ['-' thisFormat]);
+        end
+    else
+        % User canceled the dialog - bail out silently
     end
 end
