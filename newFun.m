@@ -2,8 +2,8 @@ function newFun(fxnName, inputs, outputs)
 %NEWFUN creates a function m-file with proper help info from template
 %
 %   Syntax:
-%       newFun(fxnName)
-%       newFun(fxnName, inputs, outputs)
+%       NEWFUN(FXNNAME)
+%       NEWFUN(FXNNAME, INPUTS, OUTPUTS)
 %
 %   Description:
 %       newFun(fxnName) creates a function file according to the template
@@ -29,7 +29,6 @@ function newFun(fxnName, inputs, outputs)
 %   Examples:
 %       newFun myfun
 %       newFun myfun 'input1, input2' 'output1, output2'
-%
 %   See also
 %
 %   Authors:
