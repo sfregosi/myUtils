@@ -27,15 +27,17 @@ function newFun(fxnName, inputs, outputs)
 %       The m-file is saved in the Current Folder
 %
 %   Examples:
-%       newFun myfun
+%       newFun('myfun')
 %       newFun myfun 'input1, input2' 'output1, output2'
+%
 %   See also
+%       newScript
 %
 %   Authors:
 %       S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
 %   First version:   18 July 2022
-%   Updated:         19 July 2022
+%   Updated:         05 April 2023
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%
@@ -63,6 +65,16 @@ if ~isempty(fxnName)
     end
 end
 
+% check for presence of .m and create the filename based on fxnName 
+[path, name, extension] = fileparts(fxnName);
+if strcmp(extension, '.m')
+    fullName = fullfile(path, fxnName);
+    fxnName = name;
+else
+    fullName = fullfile(path, [name '.m']);
+end
+
+
 % %%%%%%%%%%%%%%%%
 % PREP INFO
 % %%%%%%%%%%%%%%%%
@@ -77,16 +89,8 @@ userGitHub =        'https://github.com/sfregosi';
 % %%%%%%%%%%%%%%%%
 % WRITE FUNCTION
 % %%%%%%%%%%%%%%%%
-% create the filename based on the function name
-[path, name, extension] = fileparts(fxnName);
-if isempty(extension)
-    fileName = fullfile(path, [name '.m']);
-else
-    fileName = fxnName;
-end
-
 % beginning of file-printing stage
-fid = fopen(fileName,'wt');
+fid = fopen(fullName,'wt');
 
 fprintf(fid, 'function %s\n', call);
 fprintf(fid, '%% %s\t%s\n', upper(fxnName), oneLinePrompt);
@@ -130,46 +134,13 @@ fprintf(fid, '%% %s\n',repmat('%',1,72));
 fclose(fid);
 % end of file-printing stage
 
-edit(fileName);
+edit(fullName);
 
 end
 
 % %%%%%%%%%%%%%%%%
 % NESTED FUNCTIONS
 % %%%%%%%%%%%%%%%%
-% user configuration info
-function val = ownConfig(opt)
-keyvals = {
-    'user_name'   'S. Fregosi'
-    'user_email'  'selene.fregosi@gmail.com'
-    'github_url'  'https://github.com/sfregosi'
-    };
-val = keyvals{strcmp(opt, keyvals(:,1)), 2};
-end
-
-% operating system configuration
-function os = osConfig
-% getenv('OS') does not work on Mac. Query the OS like ver.m
-% find platform OS
-if ispc
-    platform = [system_dependent('getos'),' ',system_dependent('getwinsys')];
-elseif ismac
-    [fail, input] = unix('sw_vers');
-    if ~fail
-        platform = strrep(input, 'ProductName:', '');
-        platform = strrep(platform, sprintf('\t'), '');
-        platform = strrep(platform, sprintf('\n'), ' ');
-        platform = strrep(platform, 'ProductVersion:', ' Version: ');
-        platform = strrep(platform, 'BuildVersion:', 'Build: ');
-    else
-        platform = system_dependent('getos');
-    end
-else
-    platform = system_dependent('getos');
-end
-os = platform;
-end
-
 % check inputs/outputs format and size
 function sz = checkArgs(arguments)
 if iscell(arguments)
