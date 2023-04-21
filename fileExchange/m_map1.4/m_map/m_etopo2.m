@@ -67,6 +67,7 @@ end
 %efid=fopen([PATHNAME 'ETOPO2v2g_i2_MSB.bin'],'r','b'); % in big-endian format
 %efid=fopen([PATHNAME 'ETOPO2v2c_i2_MSB.bin'],'r','b'); % in big-endian format
 efid=fopen(fullfile(PATHNAME, 'etopo1_ice_g_i2.bin'),'r','l'); % apparently little-endian format
+% efid = fopen(fullfile(PATHNAME, 'ETOPO_2022_v1_60s_N90W180_surface.tif'), 'r', 'l');
 % Now, specify whether this file is grid or cell-referenced
 grid=1; % 1 for grid reference, 0 for cell - but I haven't gotten cell reference working yet
 
