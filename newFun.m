@@ -1,5 +1,5 @@
 function newFun(fxnName, inputs, outputs)
-%NEWFUN creates a function m-file with proper help info from template
+%NEWFUN Creates a function m-file with proper help info from template
 %
 %   Syntax:
 %       NEWFUN(FXNNAME)
@@ -30,14 +30,13 @@ function newFun(fxnName, inputs, outputs)
 %       newFun('myfun')
 %       newFun myfun 'input1, input2' 'output1, output2'
 %
-%   See also
-%       newScript
+%    See also   NEWSCRIPT
 %
 %   Authors:
 %       S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
 %   First version:   18 July 2022
-%   Updated:         05 April 2023
+%   Updated:         04 May 2023
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%
@@ -95,41 +94,41 @@ fid = fopen(fullName,'wt');
 fprintf(fid, 'function %s\n', call);
 fprintf(fid, '%% %s\t%s\n', upper(fxnName), oneLinePrompt);
 fprintf(fid, '%%\n');
-fprintf(fid, '%%\tSyntax:\n');
-fprintf(fid, '%%\t\t%s\n', upper(call));
+fprintf(fid, '%%   Syntax:\n');
+fprintf(fid, '%%       %s\n', upper(call));
 fprintf(fid, '%%\n');
-fprintf(fid, '%%\tDescription:\n');
-fprintf(fid, '%%\t\t%s\n',  descriptionPrompt);
-fprintf(fid, '%%\tInputs:\n');
+fprintf(fid, '%%   Description:\n');
+fprintf(fid, '%%       %s\n',  descriptionPrompt);
+fprintf(fid, '%%   Inputs:\n');
 if inSz > 1
     for f = 1:length(inputs)
-        fprintf(fid, '%%\t\t%s \t%s\n', inputs{f}, 'describe, please');
+        fprintf(fid, '%%       %s   %s\n', inputs{f}, 'describe, please');
     end
 elseif inSz == 1
-    fprintf(fid, '%%\t\t%s \t%s\n', inputs, 'describe, please');
+    fprintf(fid, '%%       %s   %s\n', inputs, 'describe, please');
 end
 fprintf(fid,'%%\n');
 fprintf(fid, '%%\tOutputs:\n');
 if outSz > 1
     for f = 1:length(inputs)
-        fprintf(fid, '%%\t\t%s \t%s\n', outputs{f}, 'describe, please');
+        fprintf(fid, '%%       %s  %s\n', outputs{f}, 'describe, please');
     end
 elseif outSz == 1
-    fprintf(fid, '%%\t\t%s \t%s\n', outputs, 'describe, please');
+    fprintf(fid, '%%       %s  %s\n', outputs, 'describe, please');
 end
 fprintf(fid, '%%\n');
-fprintf(fid, '%%\tExamples:\n');
+fprintf(fid, '%%   Examples:\n');
 fprintf(fid, '%%\n');
-fprintf(fid, '%%\tSee also\n');
+fprintf(fid, '%%   See also\n');
 fprintf(fid, '%%\n');
+fprintf(fid, '%%   Authors:\n');
+fprintf(fid, '%%       %s <%s> <%s>\n', username, userEmail, userGitHub);
 fprintf(fid, '%%\n');
-fprintf(fid, '%%\tAuthors:\n');
-fprintf(fid, '%%\t\t%s <%s> <%s>\n', username, userEmail, userGitHub);
+fprintf(fid, '%%   FirstVersion:   %s\n', datestr(now,'dd mmmm yyyy'));
+fprintf(fid, '%%   Updated:\n');
+fprintf(fid, '%%\n');
 % fprintf(fid, '%% Created with MATLAB ver.: %s on %s\n', version, osConfig);
-fprintf(fid, '%%\tCreated with MATLAB ver.: %s\n', version);
-fprintf(fid, '%%\n');
-fprintf(fid, '%%\tFirstVersion: \t%s\n', datestr(now,'dd mmmm yyyy'));
-fprintf(fid, '%%\tUpdated:\n');
+fprintf(fid, '%%   Created with MATLAB ver.: %s\n', version);
 fprintf(fid, '%% %s\n',repmat('%',1,72));
 fclose(fid);
 % end of file-printing stage
