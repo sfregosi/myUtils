@@ -1,34 +1,37 @@
 function [degmin] = decdeg2degmin(decdeg)
-% DECDEG2DEGMIN	Convert decimal degrees to degree decimal minutes
+%DECDEG2DEGMIN	Convert decimal degrees to degree minutes
 %
-%	Syntax:
-%		DEGMIN = DECDEG2DEGMIN(DECDEG)
+%   Syntax:
+%       degmin = DECDEG2DEGMIN(decdeg)
 %
-%	Description:
-%		Detailed description here, please
-%	Inputs:
-%		decdeg  N-by-1 vector of coordinates in decimal degrees 
-%       e.g., decdeg = [30.4867; -118.9833]
+%   Description:
+%       Utility to convert latitude and longitude coordinates from decimal 
+%       degrees to degrees minutes
 %
-%	Outputs:
-%		degmin  N-by-2 matrix of coordinates in degrees decimal minutes
-%		with degrees in the first column and decimal minutes in the second
-%		column
+%   Inputs:
+%       decdeg  N-by-1 vector of coordinates in decimal degrees 
 %
-%	Examples:
+%   Outputs:
+%       degmin  N-by-2 matrix of coordinates in degrees minutes with 
+%               degrees in the first column and decimal minutes in the 
+%               second column
+%
+%   Examples:
 %       decdeg = [30.4867; -118.9833];
+%       degmin = decdeg2degmin(decdeg)
 %       degmin =
-%               30.0000   29.2020
+%               30.0000     29.2020
 %               -118.0000   58.9980
-%	See also
-%       degmin2decdeg(degmin)
 %
-%	Authors:
-%		S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
-%	Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
+%   See also DEGMIN2DECDEG, DECDEG2DEGMINSEC, DEGMINSEC2DECDEG
 %
-%	FirstVersion: 	24 July 2016
-%	Updated:        23 April 2023
+%   Authors:
+%       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
+%
+%   FirstVersion:   24 July 2016
+%   Updated:        12 May 2023
+%
+%   Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 degmin = zeros(length(decdeg), 1);

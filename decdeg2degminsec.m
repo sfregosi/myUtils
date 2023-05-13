@@ -1,36 +1,39 @@
 function [degminsec] = decdeg2degminsec(decdeg)
-% DECDEG2DEGMINSEC	Convert decimal degrees to degrees minutes seconds
+%DECDEG2DEGMINSEC	Convert decimal degrees to degrees minutes seconds
 %
-%	Syntax:
-%		DEGMINSEC = DECDEG2DEGMINSEC(DECDEG)
+%   Syntax:
+%       degminsec = DECDEG2DEGMINSEC(decdeg)
 %
-%	Description:
-%		Convert decimal degrees to degrees minutes seconds
+%   Description:
+%       Utility to convert latitude and longitude coordinates from decimal 
+%       degrees to degrees minutes seconds
 %
-%	Inputs:
-%		decdeg      N-by-1 vector of coordinates in decimal degrees 
-%                   e.g., decdeg = [30.4867; -118.9833]
-%       
-%	Outputs:
-%		degminsec   N-by-3 matrix of coordinates in degrees minutes seconds
-%		            with degrees in the first column and minutes in the 
+%   Inputs:
+%       decdeg      N-by-1 vector of coordinates in decimal degrees 
+%
+%   Outputs:
+%       degminsec   N-by-3 matrix of coordinates in degrees minutes seconds
+%                   with degrees in the first column and minutes in the 
 %                   second column, and seconds in the third column
 %
-%	Examples:
+%   Examples:
 %       decdeg = [30.4867; -118.9833];
+%       degminsec = decdeg2degminsec(decdeg)
 %       degminsec =
-%                   30      29      12.1199999999965
-%                   -118    58      59.8799999999994
-%	See also
-%       degminsec2decdeg(degminsec)
+%                   30      29      12.1199
+%                   -118    58      59.8799
 %
-%	Authors:
-%		S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
-%	Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
+%   See also DEGMINSEC2DECDEG, DECDEG2DEGMIN, DEGMIN2DECDEG
 %
-%	FirstVersion: 	25 April 2023
-%	Updated:        
+%   Authors:
+%       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
+%
+%   FirstVersion:   25 April 2023
+%   Updated:        12 May 2023
+%
+%   Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 degminsec = zeros(length(decdeg), 3);
 

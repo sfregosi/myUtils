@@ -1,20 +1,40 @@
 function [decdeg] = degminsec2decdeg(degminsec)
-% Convert degree minutes seconds to decimal degrees
+%DEGMINSEC2DECDEG	Convert degree minutes seconds to decimal degrees
 %
-% Inputs:
-%       degminsec should be N-by-3 matrix of coordinates in degree minutes
-%           i.e. degminsec=[30 29 36; -118 58 16];
-% Output:
-%       decdeg will be N-by-1 vector of coordinates in decimal degrees
-%           i.e. decdeg =
-%                   30.4933
-%                   -118.9711
+%   Syntax:
+%       decdeg = DEGMINSEC2DECDEG(degminsec)
 %
-% Inverse fucntion is decdeg2degminsec(decdeg)
+%   Description:
+%       Utility to convert latitude and longitude coordinates from degrees 
+%		minutes seconds to decimal degrees
 %
-% Created 9/10/2021 by S. Fregosi
+%   Inputs:
+%       degminsec   N-by-3 matrix of coordinates in degrees minutes seconds
+%                   with degrees in the first column and minutes in the 
+%                   second column, and seconds in the third column
+%
+%   Outputs:
+%       decdeg      N-by-1 vector of coordinates in decimal degrees 
+%
+%   Examples: 
+%       degminsec = [30 29 12; -118 58 59];
+%       decdeg = degminsec2decdeg(degminsec)
+%       decdeg =
+%                 30.4867
+%                -118.9831
+%
+%   See also DECDEG2DEGMINSEC, DECDEG2DEGMIN, DEGMIN2DECDEG
+%
+%   Authors:
+%       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
+%
+%   FirstVersion:   10 September 2021
+%   Updated:        12 May 2023
+%
+%   Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-decdeg=zeros(length(degminsec(:,1)),1);
+decdeg = zeros(length(degminsec(:,1)), 1);
 
 for f = 1:length(degminsec(:,1))
     secDec = degminsec(f,3)/60;
