@@ -382,6 +382,11 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
 % 23/02/23: (3.33) Fixed PDF -append (issue #369); Added -notify option to notify user when the export is done; propagate all specified export_fig options to -toolbar,-menubar,-contextmenu exports; -silent is no longer set by default in deployed apps (i.e. you need to call -silent explicitly)
 % 23/03/23: (3.34) Fixed error when exporting axes handle to clipboard without filename (issue #372)
 % 11/04/23: (3.35) Added -n,-x,-s options to set min, max, and fixed output image size (issue #315)
+% 13/04/23: (3.36) Reduced (hopefully fixed) unintended EPS/PDF image cropping (issues #97, #318); clarified warning in case of PDF/EPS export of transparent patches (issues #94, #106, #108)
+% 23/04/23: (3.37) Fixed run-time error with old Matlab releases (issue #374); -notify console message about exported image now displays black (STDOUT) not red (STDERR)
+% 15/05/23: (3.38) Fixed endless recursion when using export_fig in Live Scripts (issue #375); don't warn about exportgraphics/copygraphics alternatives in deployed mode
+% 30/05/23: (3.39) Fixed exported bgcolor of uifigures or figures in Live Scripts (issue #377)
+% 06/07/23: (3.40) For Tiff compression, use AdobeDeflate codec (if available) instead of Deflate (issue #379)
 %}
 
     if nargout
@@ -419,12 +424,12 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
     [fig, options] = parse_args(nargout, fig, argNames, varargin{:});
 
     % Check for newer version and exportgraphics/copygraphics compatibility
-    currentVersion = 3.35;
+    currentVersion = 3.40;
     if options.version  % export_fig's version requested - return it and bail out
         imageData = currentVersion;
         return
     end
-    if ~options.silent
+    if ~options.silent && ~isdeployed
         % Check for newer version (not too often)
         checkForNewerVersion(currentVersion);  % this breaks in version 3.05- due to regexp limitation in checkForNewerVersion()
 
@@ -442,7 +447,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
         error('export_fig:MultipleFigures','export_fig can only process one figure at a time');
     elseif ~ishandle(fig)
         error('export_fig:InvalidHandle','invalid figure handle specified to export_fig');
-    else
+    elseif ~isequal(getappdata(fig,'isExportFigCopy'),true)
         oldWarn = warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
         warning off MATLAB:ui:javaframe:PropertyToBeRemoved
         hFig = handle(ancestor(fig,'figure'));
@@ -465,7 +470,9 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
             end
             try
                 % Create an invisible legacy figure at the same position/size as the uifigure
-                hNewFig = figure('Units',hFig.Units, 'Position',hFig.Position, 'MenuBar','none', 'ToolBar','none', 'Visible','off');
+                hNewFig = figure('Visible','off',    'Color',hFig.Color, ...
+                                 'Units',hFig.Units, 'Position',hFig.Position, ...
+                                 'MenuBar','none',   'ToolBar','none');
                 % Copy the uifigure contents onto the new invisible legacy figure
                 try
                     hChildren = allchild(hFig); %=uifig.Children;
@@ -476,6 +483,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
                     end
                 end
                 try fig.UserData = oldUserData; catch, end  % restore axes UserData, if modified above
+                setappdata(hNewFig,'isExportFigCopy',true); % avoid endless recursion (issue #375)
                 % Replace the uihandle in the input args with the legacy handle
                 if isUiaxes  % uiaxes
                     % Locate the corresponding axes handle in the new legacy figure
@@ -652,6 +660,8 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
 
     % Main processing 
     try
+        oldWarn = warning;
+
         % Export bitmap formats first
         if isbitmap(options)
             if abs(options.bb_padding) > 1
@@ -803,7 +813,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
             % Change alpha from [0:255] uint8 => [0:1] single from here onward:
             alpha = single(alpha) / 255;
             % Clamp the image's min/max size (if specified)
-            sz = size(A,1:2);
+            sz = size(A); sz(3:end) = []; %sz=size(A,1:2); %issue #374 & X. Xu PM
             szNew = options.min_size;
             if numel(szNew) == 2
                 szNew(isinf(szNew)) = 0;
@@ -911,7 +921,13 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
                     t.setTag('ImageLength',    size(img,1));
                     t.setTag('ImageWidth',     size(img,2)); 
                     t.setTag('Photometric',         Tiff.Photometric.RGB);
-                    t.setTag('Compression',         Tiff.Compression.Deflate); 
+                    try %issue #379 use Tiff.Compression.AdobeDeflate by default
+                        compressionMode = Tiff.Compression.AdobeDeflate;
+                    catch
+                        warning off imageio:tiffmexutils:libtiffWarning  %issue #379
+                        compressionMode = Tiff.Compression.Deflate;
+                    end
+                    t.setTag('Compression',         compressionMode); 
                     t.setTag('PlanarConfiguration', Tiff.PlanarConfiguration.Chunky);
                     t.setTag('ExtraSamples',        Tiff.ExtraSamples.AssociatedAlpha);
                     t.setTag('ResolutionUnit',      Tiff.ResolutionUnit.Inch);
@@ -979,14 +995,17 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
                 % Handle transparent patches
                 hasTransparency = ~isempty(findall(fig,'-property','FaceAlpha','-and','-not','FaceAlpha',1));
                 if hasTransparency
-                    % Alert if trying to export transparent patches/areas to non-supported outputs (issue #108)
+                    % Alert if trying to export transparent patches/areas to non-supported outputs (issues #94, #106, #108)
                     % http://www.mathworks.com/matlabcentral/answers/265265-can-export_fig-or-else-draw-vector-graphics-with-transparent-surfaces
                     % TODO - use transparency when exporting to PDF by not passing via print2eps
-                    msg = 'export_fig currently supports transparent patches/areas only in PNG output. ';
+                    if options.pdf, format = 'PDF'; else, format = 'non-PNG formats'; end
+                    msg = 'export_fig supports transparent patches/areas best in PNG output format. ';
+                    msg = sprintf('%s\nExporting figures with transparency to %s sometimes renders incorrectly. ', msg, format);
+                    msg = sprintf('%s\nIn such cases, try to use the', msg);
                     if options.pdf && ~options.silent
-                        warning('export_fig:transparency', '%s\nTo export transparent patches/areas to PDF, use the print command:\n print(gcf, ''-dpdf'', ''%s.pdf'');', msg, options.name);
+                        warning('export_fig:transparency', '%s print command: print(gcf, ''-dpdf'', ''%s.pdf'');', msg, options.name);
                     elseif ~options.png && ~options.tif && ~options.silent  % issue #168
-                        warning('export_fig:transparency', '%s\nTo export the transparency correctly, try using the ScreenCapture utility on the Matlab File Exchange: http://bit.ly/1QFrBip', msg);
+                        warning('export_fig:transparency', '%s ScreenCapture utility on the Matlab File Exchange: http://bit.ly/1QFrBip', msg);
                     end
                 elseif ~isempty(hImages)
                     % Fix for issue #230: use OpenGL renderer when exported image contains transparency
@@ -1518,7 +1537,12 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
         if ~nargout
             clear imageData alpha
         end
+
+        % Revert warnings state
+        warning(oldWarn);
     catch err
+        % Revert warnings state
+        warning(oldWarn);
         % Revert figure properties in case they were changed
         try set(fig,'Units',oldFigUnits, 'Position',pos, 'Color',tcol_orig); catch, end
         % Display possible workarounds before the error message
@@ -1614,7 +1638,7 @@ function [imageData, alpha] = export_fig(varargin) %#ok<*STRCL1,*DATST,*TNOW1>
 
     % Notify user about a successful file export
     function notify(filename)
-        fprintf(2, 'Exported screenshot image to %s\n', filename)
+        fprintf('Exported screenshot image to %s\n', filename)
         exported_files = exported_files + 1;
     end
 end
@@ -2568,6 +2592,7 @@ end
 
 % Cross-check existance of other programs
 function programsCrossCheck()
+    if isdeployed, return, end  % don't check in deployed mode
     try
         % IQ
         hasTaskList = false;
@@ -2620,6 +2645,7 @@ end
 % Hint to users to use exportgraphics/copygraphics in certain cases
 function alertForExportOrCopygraphics(options)
     %matlabVerNum = str2num(regexprep(version,'(\d+\.\d+).*','$1'));
+    if isdeployed, return, end  % don't check in deployed mode
     try
         % Bail out on R2019b- (copygraphics/exportgraphics not available/reliable)
         if verLessThan('matlab','9.8')  % 9.8 = R2020a
