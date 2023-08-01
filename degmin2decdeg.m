@@ -6,7 +6,7 @@ function [decdeg] = degmin2decdeg(degmin)
 %
 %   Description:
 %       Utility to convert latitude and longitude coordinates from degrees 
-%       minutes to decimal degreees
+%       minutes to decimal degrees
 %
 %   Inputs:
 %       degmin  N-by-2 matrix of coordinates in degree minutes
