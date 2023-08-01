@@ -7,6 +7,10 @@ function [sig, fs] = stitchWavs(wavFiles)
 %   Description:
 %       Read in multiple wav files sequentially and combine them into a
 %       single 'sig' variable for plotting, etc. 
+%
+%       BE CAREFUL!!! Don't try to do this with too many files with high
+%       sample rates or will max out memory. Have reasonably read in 30
+%       mins of data at 96 kHz with 16 GB machine.
 % 
 %   Inputs:
 %       wavFiles   [STRUCT] output of a dir command containing fields
