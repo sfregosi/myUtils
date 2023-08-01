@@ -110,7 +110,7 @@ end
 fprintf(fid,'%%\n');
 fprintf(fid, '%%\tOutputs:\n');
 if outSz > 1
-    for f = 1:length(inputs)
+    for f = 1:length(outputs)
         fprintf(fid, '%%       %s  %s\n', outputs{f}, 'describe, please');
     end
 elseif outSz == 1
