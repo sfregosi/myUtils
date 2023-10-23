@@ -22,7 +22,7 @@ function decimateDir(folder, fsNew)
 %       by new sample rates by an integer.
 %
 %	Outputs:
-%		creates a folder where newly written .wavs are stored
+%		creates a folder where newly written WAVs are stored
 %
 %	Examples:
 %
