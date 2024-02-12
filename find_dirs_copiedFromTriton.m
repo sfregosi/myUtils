@@ -1,4 +1,7 @@
 function dirs = find_dirs(d, ftype)
+% originally found in Triton code. Extracted and added to myUtils 
+% S. Fregosi 2021 08 11
+
 cd(d);
 dirs = {};
 
