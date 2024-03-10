@@ -70,10 +70,11 @@ fprintf(fid, '%%\n');
 fprintf(fid, '%%\tAuthors:\n');
 fprintf(fid, '%%\t\t%s <%s> <%s>\n', username, userEmail, userGitHub);
 % fprintf(fid, '%% Created with MATLAB ver.: %s on %s\n', version, osConfig);
-fprintf(fid, '%%\tCreated with MATLAB ver.: %s\n', version);
 fprintf(fid, '%%\n');
 fprintf(fid, '%%\tFirstVersion: \t%s\n', datestr(now,'dd mmmm yyyy'));
 fprintf(fid, '%%\tUpdated:\n');
+fprintf(fid, '%%\n');
+fprintf(fid, '%%\tCreated with MATLAB ver.: %s\n', version);
 fprintf(fid, '%% %s\n',repmat('%',1,72));
 fclose(fid);
 % end of file-printing stage
