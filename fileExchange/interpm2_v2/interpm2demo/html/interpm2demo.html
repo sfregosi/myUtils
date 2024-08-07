@@ -1,0 +1,291 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>interpm2</title><meta name="generator" content="MATLAB 8.0"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2014-06-16"><meta name="DC.source" content="interpm2demo.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>interpm2</h1><!--introduction--><p>This function employs the <tt>interpm</tt> function to densifiy lat/lon sampling in lines or polygons, but extends the available input units to include 'meters' or 'kilometers'. However, note that if units of meters or kilometers are specified, the resultant spacing will be only an approximation, due to an underlying approximation of the Earth's shape as a sphere of mean radius 6371 km.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Syntax</a></li><li><a href="#2">Description</a></li><li><a href="#3">Example 1: Draw a great circle route from Denver to Lisbon at 25 km spacing; compare to linear</a></li><li><a href="#5">Example 2: Densify a path to 15-meter spacing along a great circle path</a></li><li><a href="#9">Example 3: Use <tt>interpm2</tt> exactly like <tt>interpm</tt>.</a></li><li><a href="#10">Revision History</a></li><li><a href="#11">Author Info</a></li></ul></div><h2>Syntax<a name="1"></a></h2><pre>[latout,lonout] = interpm(lat,lon,maxdiff)
+[latout,lonout] = interpm(lat,lon,maxdiff,method)
+[latout,lonout] = interpm(lat,lon,maxdiff,method,units)
+[latout,lonout] = interpm(lat,lon,maxdiff,method,units,tolerance)
+[latout,lonout,deltadist] = interpm(...)</pre><h2>Description<a name="2"></a></h2><p><tt>[latout,lonout] = interpm(lat,lon,maxdiff)</tt> fills in any gaps in latitude (<tt>lat</tt>) or longitude (<tt>lon</tt>) data vectors that are greater than a defined tolerance <tt>maxdiff</tt> apart in either dimension. The angle units of the three inputs need not be specified, but they must be identical. <tt>latout</tt> and <tt>lonout</tt> are the new latitude and longitude data vectors, in which any gaps larger than maxdiff in the original vectors have been filled with additional points. The default method of interpolation used by <tt>interpm2</tt> is linear.</p><p><tt>[latout,lonout] = interpm(lat,lon,maxdiff,method)</tt> interpolates between vector data coordinate points using a specified interpolation method. Valid interpolation method strings are <tt>'gc'</tt> for great circle, <tt>'rh'</tt> for rhumb line, and <tt>'lin'</tt> for linear interpolation.</p><p><tt>[latout,lonout] = interpm(lat,lon,maxdiff,method,units)</tt> specifies the units used, where units can be <tt>'degrees'</tt>, <tt>'radians'</tt>, <tt>'meters'</tt>, or <tt>'kilometers'</tt>. The default is <tt>'degrees'</tt>. If units are meters or kilometers, the calculation will assume the Earth is a sphere of radius 6371 km.</p><p><tt>[latout,lonout] = interpm(lat,lon,maxdiff,method,units,tolerance)</tt> specifies an amount of acceptable deviation between <tt>maxdiff</tt> and the average distance between output points. Due to an approximation of the Earth as a sphere, the first solution this function calculates may not yield points exactly <tt>maxdiff</tt> apart. If, however, you specify <tt>maxdiff = 15</tt> meters and <tt>tolerance = 0.010</tt>, the function will keep trying until it finds a solution where the average distance between points is 15+/-0.010 meters. If no tolerance is declared a value corresponding to 0.1% of <tt>maxdiff</tt> will be assumed.</p><p><tt>[latout,lonout,deltadist] = interpm(...)</tt> returns the mean distance <tt>deltadist</tt> between output points given by <tt>latout</tt> and <tt>lonout</tt>. Units of <tt>deltadist</tt> are in meters unless input units are kilometers, in which case <tt>deltadist</tt> units are in kilometers.</p><h2>Example 1: Draw a great circle route from Denver to Lisbon at 25 km spacing; compare to linear<a name="3"></a></h2><p>and rhumb line paths:</p><pre class="codeinput">denver = [39.739167, -104.984722]; <span class="comment">% city coordinates in the form [lat lon]</span>
+lisbon = [38.713811, -9.139386];
+
+tic
+[lat25km,lon25km] = interpm2([denver(1) lisbon(1)],[denver(2) lisbon(2)],25,<span class="string">'gc'</span>,<span class="string">'km'</span>);
+toc
+
+figure
+worldmap(<span class="string">'world'</span>)
+land = shaperead(<span class="string">'landareas'</span>, <span class="string">'UseGeoCoords'</span>, true);
+geoshow(land, <span class="string">'FaceColor'</span>, [0.5 0.7 0.5])
+plotm(lat25km,lon25km,<span class="string">'b'</span>,<span class="string">'linewidth'</span>,2)
+
+<span class="comment">% Now compare great circle path to linear and rhumb lines:</span>
+[lat25rh,lon25rh] = interpm2([denver(1) lisbon(1)],[denver(2) lisbon(2)],25,<span class="string">'rh'</span>,<span class="string">'km'</span>);
+[lat25lin,lon25lin] = interpm2([denver(1) lisbon(1)],[denver(2) lisbon(2)],25,<span class="string">'lin'</span>,<span class="string">'km'</span>);
+
+plotm(lat25rh,lon25rh,<span class="string">'r'</span>,<span class="string">'linewidth'</span>,2)
+plotm(lat25lin,lon25lin,<span class="string">'m'</span>,<span class="string">'linewidth'</span>,2)
+</pre><pre class="codeoutput">Elapsed time is 0.293733 seconds.
+</pre><img vspace="5" hspace="5" src="interpm2demo_01.png" alt=""> <p>Unfortunately, this function cannot give perfectly equally-spaced points along a track, but it tries its best.  The <tt>deltadist</tt> optional output will tell you the average distance between points, but you may still wonder how much distances vary between points.  You can visualize this with a histogram:</p><pre class="codeinput">distancesBetweenPoints = distance(lat25km(1:end-1),lon25km(1:end-1),<span class="keyword">...</span>
+    lat25km(2:end),lon25km(2:end),referenceEllipsoid(<span class="string">'wgs 84'</span>));
+
+figure
+hist(distancesBetweenPoints/1000,31)
+xlabel(<span class="string">'kilometers between points in (latout,lonout)'</span>)
+</pre><img vspace="5" hspace="5" src="interpm2demo_02.png" alt=""> <h2>Example 2: Densify a path to 15-meter spacing along a great circle path<a name="5"></a></h2><p>In this example, a path is given by the points (<tt>lat</tt>,|lon|) and you want a great circle interpolation to 15 meter spacing.  Further, you insist that the distance between points declared by <tt>maxdiff</tt> must meet the requirement 15 +/- 0.005 meters.  In other words you want the average distance between points to be within 5 mm of 15 meters.</p><pre class="codeinput">lat = [39.61 39.31 39.01 38.71 38.40 38.10 37.80 37.49 37.19 36.89 36.58];
+lon = [16.72 16.53 16.34 16.15 15.97 15.80 15.62 15.46 15.29 15.13 14.97];
+
+[lat15m,lon15m,deltadist] = interpm2(lat,lon,15,<span class="string">'gc'</span>,<span class="string">'meters'</span>,.005);
+
+figure
+worldmap([min(lat) max(lat)],[min(lon) max(lon)])
+plotm(lat,lon,<span class="string">'bp'</span>) <span class="comment">% original data</span>
+plotm(lat15m,lon15m,<span class="string">'k.'</span>) <span class="comment">% data densified to ~15 m spacing</span>
+</pre><img vspace="5" hspace="5" src="interpm2demo_03.png" alt=""> <p>Now let's check distance between the first two densified points. We can compare this to the average distance between points <tt>deltadist</tt> and look at a distribution of distances between points.</p><pre class="codeinput">distance(lat15m(1),lon15m(1),lat15m(2),lon15m(2),referenceEllipsoid(<span class="string">'wgs 84'</span>))
+</pre><pre class="codeoutput">
+ans =
+
+   15.2010
+
+</pre><pre class="codeinput">deltadist
+
+distancesBetweenPoints = distance(lat15m(1:end-1),lon15m(1:end-1),<span class="keyword">...</span>
+    lat15m(2:end),lon15m(2:end),referenceEllipsoid(<span class="string">'wgs 84'</span>));
+
+figure
+hist(distancesBetweenPoints,25)
+xlabel(<span class="string">'meters between points in (latout,lonout)'</span>)
+</pre><pre class="codeoutput">
+deltadist =
+
+   14.9985
+
+</pre><img vspace="5" hspace="5" src="interpm2demo_04.png" alt=""> <p>Note that although the mean distance between points <tt>deltadist = 14.9985</tt>, not all distances between points are within 5 mm of 15 m. Unfortunately, <tt>interpm</tt> calculates equidistant points between each waypoint that you enter as <tt>lat</tt> and <tt>lon</tt>.</p><h2>Example 3: Use <tt>interpm2</tt> exactly like <tt>interpm</tt>.<a name="9"></a></h2><p>Here is an example from the <tt>interpm</tt> documentation, but in this case <tt>interpm2</tt> is used instead.</p><pre class="codeinput">lat = [1 2 4 5]; lon = [7 8 9 11];
+[latout,lonout] = interpm2(lat,lon,1);
+[latout lonout]
+</pre><pre class="codeoutput">
+ans =
+
+    1.0000    7.0000
+    2.0000    8.0000
+    3.0000    8.5000
+    4.0000    9.0000
+    4.5000   10.0000
+    5.0000   11.0000
+
+</pre><h2>Revision History<a name="10"></a></h2><p>The first version of this file was uploaded to the Mathworks File Exchange site on 11 June 2014. On 16 June 2014 the sixth input argument was changed from <tt>percentAcceptableError</tt> to an absolute distance <tt>tolerance</tt>.</p><h2>Author Info<a name="11"></a></h2><p>This script was created by Chad A. Greene of the Institute for Geophysics at the University of Texas at Austin on June 11, 2014. In his free time, Chad enjoys gardening and woodworking.</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2012b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% interpm2 
+% This function employs the |interpm| function to densifiy lat/lon sampling in
+% lines or polygons, but extends the available input units to include
+% 'meters' or 'kilometers'. However, note that if units of meters or kilometers 
+% are specified, the resultant spacing will be only an approximation, due
+% to an underlying approximation of the Earth's shape as a sphere of mean
+% radius 6371 km.  
+% 
+% 
+%% Syntax
+% 
+%  [latout,lonout] = interpm(lat,lon,maxdiff)
+%  [latout,lonout] = interpm(lat,lon,maxdiff,method)
+%  [latout,lonout] = interpm(lat,lon,maxdiff,method,units)
+%  [latout,lonout] = interpm(lat,lon,maxdiff,method,units,tolerance)
+%  [latout,lonout,deltadist] = interpm(...)
+% 
+% 
+%% Description 
+% 
+% |[latout,lonout] = interpm(lat,lon,maxdiff)| fills in any gaps in latitude (|lat|) or 
+% longitude (|lon|) data vectors that are greater than a defined tolerance |maxdiff| apart 
+% in either dimension. The angle units of the three inputs need not be specified, but 
+% they must be identical. |latout| and |lonout| are the new latitude and longitude data 
+% vectors, in which any gaps larger than maxdiff in the original vectors have been 
+% filled with additional points. The default method of interpolation used by |interpm2| 
+% is linear.
+% 
+% |[latout,lonout] = interpm(lat,lon,maxdiff,method)| interpolates between vector data 
+% coordinate points using a specified interpolation method. Valid interpolation method 
+% strings are |'gc'| for great circle, |'rh'| for rhumb line, and |'lin'| for linear 
+% interpolation.
+% 
+% |[latout,lonout] = interpm(lat,lon,maxdiff,method,units)| specifies the units used, 
+% where units can be |'degrees'|, |'radians'|, |'meters'|, or |'kilometers'|. The default is 
+% |'degrees'|. If units are meters or kilometers, the calculation will assume the  
+% Earth is a sphere of radius 6371 km. 
+% 
+% |[latout,lonout] = interpm(lat,lon,maxdiff,method,units,tolerance)| specifies  
+% an amount of acceptable deviation between |maxdiff| and the average distance between 
+% output points. Due to an approximation of the Earth as a sphere, the
+% first solution this function calculates may not yield points exactly
+% |maxdiff| apart. If, however, you specify |maxdiff = 15| meters and |tolerance = 0.010|,
+% the function will keep trying until it finds a solution where the average distance 
+% between points is 15+/-0.010 meters. If no tolerance is declared a value
+% corresponding to 0.1% of |maxdiff| will be assumed.  
+% 
+% |[latout,lonout,deltadist] = interpm(...)| returns the mean distance |deltadist| between 
+% output points given by |latout| and |lonout|. Units of |deltadist| are in meters 
+% unless input units are kilometers, in which case |deltadist| units are in 
+% kilometers. 
+% 
+% 
+%% Example 1: Draw a great circle route from Denver to Lisbon at 25 km spacing; compare to linear 
+% and rhumb line paths: 
+
+denver = [39.739167, -104.984722]; % city coordinates in the form [lat lon]
+lisbon = [38.713811, -9.139386]; 
+
+tic 
+[lat25km,lon25km] = interpm2([denver(1) lisbon(1)],[denver(2) lisbon(2)],25,'gc','km'); 
+toc 
+
+figure
+worldmap('world')
+land = shaperead('landareas', 'UseGeoCoords', true);
+geoshow(land, 'FaceColor', [0.5 0.7 0.5])
+plotm(lat25km,lon25km,'b','linewidth',2)
+
+% Now compare great circle path to linear and rhumb lines: 
+[lat25rh,lon25rh] = interpm2([denver(1) lisbon(1)],[denver(2) lisbon(2)],25,'rh','km'); 
+[lat25lin,lon25lin] = interpm2([denver(1) lisbon(1)],[denver(2) lisbon(2)],25,'lin','km'); 
+
+plotm(lat25rh,lon25rh,'r','linewidth',2)
+plotm(lat25lin,lon25lin,'m','linewidth',2)
+
+%%
+% Unfortunately, this function cannot give perfectly equally-spaced points
+% along a track, but it tries its best.  The |deltadist| optional output
+% will tell you the average distance between points, but you may still
+% wonder how much distances vary between points.  You can visualize this
+% with a histogram:
+
+distancesBetweenPoints = distance(lat25km(1:end-1),lon25km(1:end-1),...
+    lat25km(2:end),lon25km(2:end),referenceEllipsoid('wgs 84'));
+
+figure
+hist(distancesBetweenPoints/1000,31)
+xlabel('kilometers between points in (latout,lonout)')
+
+%% Example 2: Densify a path to 15-meter spacing along a great circle path
+% In this example, a path is given by the points (|lat|,|lon|) and you want
+% a great circle interpolation to 15 meter spacing.  Further, you insist
+% that the distance between points declared by |maxdiff| must meet the
+% requirement 15 +/- 0.005 meters.  In other words you want the average
+% distance between points to be within 5 mm of 15 meters.  
+
+lat = [39.61 39.31 39.01 38.71 38.40 38.10 37.80 37.49 37.19 36.89 36.58];  
+lon = [16.72 16.53 16.34 16.15 15.97 15.80 15.62 15.46 15.29 15.13 14.97];
+
+[lat15m,lon15m,deltadist] = interpm2(lat,lon,15,'gc','meters',.005); 
+
+figure
+worldmap([min(lat) max(lat)],[min(lon) max(lon)])
+plotm(lat,lon,'bp') % original data
+plotm(lat15m,lon15m,'k.') % data densified to ~15 m spacing 
+
+%% 
+% Now let's check distance between the first two densified points. We can
+% compare this to the average distance between points |deltadist| and look
+% at a distribution of distances between points.  
+
+distance(lat15m(1),lon15m(1),lat15m(2),lon15m(2),referenceEllipsoid('wgs 84'))
+
+%%
+deltadist
+
+distancesBetweenPoints = distance(lat15m(1:end-1),lon15m(1:end-1),...
+    lat15m(2:end),lon15m(2:end),referenceEllipsoid('wgs 84'));
+
+figure
+hist(distancesBetweenPoints,25)
+xlabel('meters between points in (latout,lonout)')
+
+%% 
+% Note that although the mean distance between points |deltadist =
+% 14.9985|, not all distances between points are within 5 mm of 15 m.
+% Unfortunately, |interpm| calculates equidistant points between each
+% waypoint that you enter as |lat| and |lon|. 
+
+%% Example 3: Use |interpm2| exactly like |interpm|.  
+% Here is an example from the |interpm| documentation, but in this case
+% |interpm2| is used instead. 
+
+lat = [1 2 4 5]; lon = [7 8 9 11];
+[latout,lonout] = interpm2(lat,lon,1);
+[latout lonout]
+
+
+%% Revision History
+% The first version of this file was uploaded to the Mathworks File
+% Exchange site on 11 June 2014. On 16 June 2014 the sixth input argument
+% was changed from |percentAcceptableError| to an absolute distance
+% |tolerance|. 
+
+%% Author Info
+% This script was created by Chad A. Greene of the Institute for Geophysics
+% at the University of Texas at Austin on June 11, 2014. In his free time,
+% Chad enjoys gardening and woodworking.  
+##### SOURCE END #####
+--></body></html>
