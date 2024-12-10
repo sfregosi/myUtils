@@ -24,8 +24,7 @@ function newScript(scriptName)
 %  Authors:
 %       S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
-%   First version:   05 April 2023
-%   Updated:
+%   Updated:   2024 December 10
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%
@@ -71,8 +70,7 @@ fprintf(fid, '%%\tAuthors:\n');
 fprintf(fid, '%%\t\t%s <%s> <%s>\n', username, userEmail, userGitHub);
 % fprintf(fid, '%% Created with MATLAB ver.: %s on %s\n', version, osConfig);
 fprintf(fid, '%%\n');
-fprintf(fid, '%%\tFirstVersion: \t%s\n', datestr(now,'dd mmmm yyyy'));
-fprintf(fid, '%%\tUpdated:\n');
+fprintf(fid, '%%\tUpdated:   %s\n', datestr(now,'yyyy mmmm dd'));
 fprintf(fid, '%%\n');
 fprintf(fid, '%%\tCreated with MATLAB ver.: %s\n', version);
 fprintf(fid, '%% %s\n',repmat('%',1,72));

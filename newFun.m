@@ -35,8 +35,7 @@ function newFun(fxnName, inputs, outputs)
 %   Authors:
 %       S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
-%   First version:   18 July 2022
-%   Updated:         04 May 2023
+%   Updated:   2024 December 10
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%
@@ -124,8 +123,7 @@ fprintf(fid, '%%\n');
 fprintf(fid, '%%   Authors:\n');
 fprintf(fid, '%%       %s <%s> <%s>\n', username, userEmail, userGitHub);
 fprintf(fid, '%%\n');
-fprintf(fid, '%%   FirstVersion:   %s\n', datestr(now,'dd mmmm yyyy'));
-fprintf(fid, '%%   Updated:\n');
+fprintf(fid, '%%   Updated:   %s\n', datestr(now,'yyyy mmmm dd'));
 fprintf(fid, '%%\n');
 % fprintf(fid, '%% Created with MATLAB ver.: %s on %s\n', version, osConfig);
 fprintf(fid, '%%   Created with MATLAB ver.: %s\n', version);
