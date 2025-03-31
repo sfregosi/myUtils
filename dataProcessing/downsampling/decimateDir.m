@@ -94,7 +94,13 @@ elseif ~isempty(audioFiles)
         if rem(dfN,1) == 0
             fprintf(1,'decimation factor (%0.f) is good\n', dfN);
             df(f) = dfN;
-            fsNewStr{f} = [num2str(fsN/1000) 'kHz']; % new sample rate in string as kHz (for file names)
+            % make string for new file names - as Hz or kHz
+            if fsN/1000 < 1 
+                fsNewStr{f} = [num2str(fsN) 'Hz']; % as Hz
+            else 
+                fsNewStr{f} = [num2str(fsN/1000) 'kHz']; 
+            end
+
             pathParts = regexp(folder, filesep, 'split');
             path_outN = fullfile(pathParts{1:end-1}, ...
                 [pathParts{end} '_decimated_' fsNewStr{f}]);
