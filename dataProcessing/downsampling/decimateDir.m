@@ -1,11 +1,11 @@
-function decimateDir(fsNew, folder)
-% DECIMATEDIR	downsample directory of wav files using DECIMATE
+function decimateDir(fsNew, ext, folder)
+% DECIMATEDIR	downsample directory of audio files using DECIMATE
 %
 %	Syntax:
-%		DECIMATEDIR(FSNEW, FOLDER)
+%		DECIMATEDIR(FSNEW, EXT, FOLDER)
 %
 %	Description:
-%		Decimate a directory of wav files to a defined new sampling rate,
+%		Decimate a directory of audio files to a defined new sampling rate,
 %		fsNew, or multiple new sample rates, and write new files in new
 %		subdirectory.
 %
@@ -31,31 +31,36 @@ function decimateDir(fsNew, folder)
 %       fsNew   [double] or [vector] new sample rate or vector of multiple
 %               new sample rates (e.g., [1000 9600]) in Hz. Original sample
 %               rate must be divisible by new sample rates by an integer
-%       folder 	path to wav files to be decimated. Can contain subfolders
+%       ext     [string] input file extension, either '.wav', or '.flac'
+%       folder 	path to audio files to be decimated
 %
 %	Outputs:
-%		creates a folder where newly written WAVs are stored
+%		creates a folder where newly written audio files are stored
 %
 %	Examples:
-%       decimate([10 9600], 'G:/glider/wav');
+%       decimate([10 9600], '.wav', 'G:/glider/wav');
 %
 %	See also
 %
 %
 %	Authors:
 %		S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
-%	Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
 %
-%	FirstVersion: 	17 October 2022
-%	Updated:        01 August 2024
+%	Updated:        31 March 2025
+%
+%	Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+if nargin < 3
+    folder = uigetdir('C:\', 'Select folder containing audio files');
+end
+
 if nargin < 2
-	folder = uigetdir('C:\', 'Select folder containing wav files');
+    ext = input('Specify file extension [''.wav'' or ''.flac'']');
 end
 
 if nargin < 1
-	fsNew = input('Specify new sample rate:');
+    fsNew = input('Specify new sample rate:');
 end
 
 
@@ -67,62 +72,62 @@ end
 % do the decimation!
 fprintf(1, 'Starting %s\n', folder);
 
-wavFiles = dir(fullfile(folder, '*.wav'));
+audioFiles = dir(fullfile(folder, ['*', ext]));
 
 % check for wav files
-if isempty(wavFiles)
-	fprintf(1, '%s: no wav files. Exiting...\n', folder);
-	return
+if isempty(audioFiles)
+    fprintf(1, '%s: no audio files. Exiting...\n', folder);
+    return
 
-	% if files present...
-elseif ~isempty(wavFiles)
-	% set up decimation factors/output folder structure
-	info = audioinfo(fullfile(folder, wavFiles(1,1).name));
-	fprintf(1, 'sample rate: %0.f Hz\n', info.SampleRate)
-	df = zeros(length(fsNew), 1); % decimation factor(s)
-	path_out = cell(length(fsNew), 1);
-	fsNewStr = cell(length(fsNew), 1);
-	for f = 1:length(fsNew)
-		fsN = fsNew(f);
-		% calc decimation factor and check that its an integer
-		dfN = info.SampleRate/fsN;
-		if rem(dfN,1) == 0
-			fprintf(1,'decimation factor (%0.f) is good\n', dfN);
-			df(f) = dfN;
-			fsNewStr{f} = [num2str(fsN/1000) 'kHz']; % new sample rate in string as kHz (for file names)
-			pathParts = regexp(folder, filesep, 'split');
-			path_outN = fullfile(pathParts{1:end-1}, ...
-				[pathParts{end} '_decimated_' fsNewStr{f}]);
-			mkdir(path_outN);
-			path_out{f} = path_outN;
-		else
-			fprintf(1, ['invalid decimation factor: \n', ...
-				'%s\n fs = %.0f Hz but fsNew = %.0f Hz ...skipping\n'], ...
-				folder, info.SampleRate, fsN)
-			continue
-		end
-	end % fsNew
+    % if files present...
+elseif ~isempty(audioFiles)
+    % set up decimation factors/output folder structure
+    info = audioinfo(fullfile(folder, audioFiles(1,1).name));
+    fprintf(1, 'sample rate: %0.f Hz\n', info.SampleRate)
+    df = zeros(length(fsNew), 1); % decimation factor(s)
+    path_out = cell(length(fsNew), 1);
+    fsNewStr = cell(length(fsNew), 1);
+    for f = 1:length(fsNew)
+        fsN = fsNew(f);
+        % calc decimation factor and check that its an integer
+        dfN = info.SampleRate/fsN;
+        if rem(dfN,1) == 0
+            fprintf(1,'decimation factor (%0.f) is good\n', dfN);
+            df(f) = dfN;
+            fsNewStr{f} = [num2str(fsN/1000) 'kHz']; % new sample rate in string as kHz (for file names)
+            pathParts = regexp(folder, filesep, 'split');
+            path_outN = fullfile(pathParts{1:end-1}, ...
+                [pathParts{end} '_decimated_' fsNewStr{f}]);
+            mkdir(path_outN);
+            path_out{f} = path_outN;
+        else
+            fprintf(1, ['invalid decimation factor: \n', ...
+                '%s\n fs = %.0f Hz but fsNew = %.0f Hz ...skipping\n'], ...
+                folder, info.SampleRate, fsN)
+            continue
+        end
+    end % fsNew
 
-	% decimate and write new files
-	for wf = 1:length(wavFiles)
-		try
-			[~, wfName, ext] = fileparts(fullfile(wavFiles(wf).folder, ...
-				wavFiles(wf).name));
-			[data, fs] = audioread(fullfile(wavFiles(wf).folder, ...
-				wavFiles(wf).name));
+    % decimate and write new files
+    for wf = 1:length(audioFiles)
+        try
+            [~, wfName, ext] = fileparts(fullfile(audioFiles(wf).folder, ...
+                audioFiles(wf).name));
+            [data, fs] = audioread(fullfile(audioFiles(wf).folder, ...
+                audioFiles(wf).name));
 
-			for g = 1:length(df)
-				dataNew = decimate(data, df(g));
-				audiowrite(fullfile(path_out{g}, [wfName '_' fsNewStr{g} ext]), ...
-					dataNew, fsNew(g));
-			end
-			clear data dataNew
-		catch
-			fprintf(1, 'ATTENTION: %s - file #%i: %s corrupt\n', ...
-				datetime('now'), f, wavFiles(f,1).name);
-		end
+            for g = 1:length(df)
+                dataNew = decimate(data, df(g));
+                audiowrite(fullfile(path_out{g}, [wfName '_' fsNewStr{g} ext]), ...
+                    dataNew, fsNew(g));
+            end
+            clear data dataNew
+        catch
+            fprintf(1, 'ATTENTION: %s - file #%i: %s corrupt\n', ...
+                datetime('now'), f, audioFiles(f,1).name);
+        end
 
-	end %loop through wavFiles
+    end %loop through wavFiles
 end % wavFile check
 fprintf(1, '%s DONE\n', folder)
 
