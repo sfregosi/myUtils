@@ -70,7 +70,9 @@ end
 % fileList = fileList(~dirFlags,:);
 
 % do the decimation!
-fprintf(1, 'Starting %s\n', folder);
+fprintf(1, 'Decimating %s\n', folder);
+fprintf(1, '   Start time: %s\n',datetime('now')); 
+
 
 audioFiles = dir(fullfile(folder, ['*', ext]));
 
@@ -83,7 +85,7 @@ if isempty(audioFiles)
 elseif ~isempty(audioFiles)
     % set up decimation factors/output folder structure
     info = audioinfo(fullfile(folder, audioFiles(1,1).name));
-    fprintf(1, 'sample rate: %0.f Hz\n', info.SampleRate)
+    fprintf(1, 'Original sample rate: %0.f Hz\n', info.SampleRate)
     df = zeros(length(fsNew), 1); % decimation factor(s)
     path_out = cell(length(fsNew), 1);
     fsNewStr = cell(length(fsNew), 1);
@@ -92,7 +94,7 @@ elseif ~isempty(audioFiles)
         % calc decimation factor and check that its an integer
         dfN = info.SampleRate/fsN;
         if rem(dfN,1) == 0
-            fprintf(1,'decimation factor (%0.f) is good\n', dfN);
+            fprintf(1,'  decimation factor (%0.f) to %i Hz is good\n', dfN, fsN);
             df(f) = dfN;
             % make string for new file names - as Hz or kHz
             if fsN/1000 < 1 
@@ -135,6 +137,6 @@ elseif ~isempty(audioFiles)
 
     end %loop through wavFiles
 end % wavFile check
-fprintf(1, '%s DONE\n', folder)
+fprintf(1, '%s DONE. End time: %s\n', folder, datetime('now'))
 
 end
