@@ -71,7 +71,7 @@ end
 
 % do the decimation!
 fprintf(1, 'Decimating %s\n', folder);
-fprintf(1, '   Start time: %s\n',datetime('now')); 
+fprintf(1, '   Start time: %s\n',datetime('now'));
 
 
 audioFiles = dir(fullfile(folder, ['*', ext]));
@@ -97,10 +97,10 @@ elseif ~isempty(audioFiles)
             fprintf(1,'  decimation factor (%0.f) to %i Hz is good\n', dfN, fsN);
             df(f) = dfN;
             % make string for new file names - as Hz or kHz
-            if fsN/1000 < 1 
+            if fsN/1000 < 1
                 fsNewStr{f} = [num2str(fsN) 'Hz']; % as Hz
-            else 
-                fsNewStr{f} = [num2str(fsN/1000) 'kHz']; 
+            else
+                fsNewStr{f} = [num2str(fsN/1000) 'kHz'];
             end
 
             pathParts = regexp(folder, filesep, 'split');
@@ -122,12 +122,26 @@ elseif ~isempty(audioFiles)
             [~, wfName, ext] = fileparts(fullfile(audioFiles(wf).folder, ...
                 audioFiles(wf).name));
             [data, fs] = audioread(fullfile(audioFiles(wf).folder, ...
-                audioFiles(wf).name));
+                audioFiles(wf).name), 'native');
 
             for g = 1:length(df)
-                dataNew = decimate(data, df(g));
-                audiowrite(fullfile(path_out{g}, [wfName '_' fsNewStr{g} ext]), ...
-                    dataNew, fsNew(g));
+                dataNew = decimate(double(data), df(g));
+                % write data type based on output bits
+                if info.BitsPerSample == 16
+                    audiowrite(fullfile(path_out{g}, [wfName '_' fsNewStr{g} ext]), ...
+                        int16(dataNew), fsNew(g), 'BitsPerSample', info.BitsPerSample);
+                elseif info.BitsPerSample == 24 || info.BitsPerSample == 32
+                    audiowrite(fullfile(path_out{g}, [wfName '_' fsNewStr{g} ext]), ...
+                        int32(dataNew), fsNew(g), 'BitsPerSample', info.BitsPerSample);
+                else
+                    fprintf(1, 'Error: bit size %i not supported.', info.BitsPerSample)
+                    return
+                end
+
+                % old audiowrite - have to be careful with how data are
+                % read in ('native') and saved (double vs int16/int32)
+                % audiowrite(fullfile(path_out{g}, [wfName '_' fsNewStr{g} ext]), ...
+                %     dataNew, fsNew(g), 'BitsPerSample', info.BitsPerSample);
             end
             clear data dataNew
         catch
@@ -135,8 +149,8 @@ elseif ~isempty(audioFiles)
                 datetime('now'), f, audioFiles(f,1).name);
         end
 
-    end %loop through wavFiles
-end % wavFile check
+    end %loop through audioFiles
+end % audioFile check
 fprintf(1, '%s DONE. End time: %s\n', folder, datetime('now'))
 
 end
