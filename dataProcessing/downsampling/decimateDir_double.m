@@ -2,7 +2,7 @@ function decimateDir_double(fsNew, ext, folder)
 % DECIMATEDIR	downsample directory of audio files using DECIMATE
 %
 %	Syntax:
-%		DECIMATEDIR(FSNEW, EXT, FOLDER)
+%		DECIMATEDIR_DOUBLE(FSNEW, EXT, FOLDER)
 %
 %	Description:
 %		Decimate a directory of audio files to a defined new sampling rate,
@@ -105,7 +105,7 @@ elseif ~isempty(audioFiles)
 
             pathParts = regexp(folder, filesep, 'split');
             path_outN = fullfile(pathParts{1:end-1}, ...
-                [pathParts{end} '_decimated_' fsNewStr{f}]);
+                [pathParts{end} '_decimated_double_' fsNewStr{f}]);
             mkdir(path_outN);
             path_out{f} = path_outN;
         else
