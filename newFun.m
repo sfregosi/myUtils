@@ -35,7 +35,7 @@ function newFun(fxnName, inputs, outputs)
 %   Authors:
 %       S. Fregosi  <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
-%   Updated:   2024 December 10
+%   Updated:   04 May 2025
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%
@@ -98,6 +98,7 @@ fprintf(fid, '%%       %s\n', upper(call));
 fprintf(fid, '%%\n');
 fprintf(fid, '%%   Description:\n');
 fprintf(fid, '%%       %s\n',  descriptionPrompt);
+fprintf(fid, '%%\n');
 fprintf(fid, '%%   Inputs:\n');
 if inSz > 1
     for f = 1:length(inputs)
@@ -123,7 +124,7 @@ fprintf(fid, '%%\n');
 fprintf(fid, '%%   Authors:\n');
 fprintf(fid, '%%       %s <%s> <%s>\n', username, userEmail, userGitHub);
 fprintf(fid, '%%\n');
-fprintf(fid, '%%   Updated:   %s\n', datestr(now,'yyyy mmmm dd'));
+fprintf(fid, '%%   Updated:   %s\n', datestr(now,'dd mmmm yyyy'));
 fprintf(fid, '%%\n');
 % fprintf(fid, '%% Created with MATLAB ver.: %s on %s\n', version, osConfig);
 fprintf(fid, '%%   Created with MATLAB ver.: %s\n', version);
