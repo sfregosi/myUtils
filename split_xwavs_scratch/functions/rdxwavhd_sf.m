@@ -1,4 +1,4 @@
-function PARAMS = rdxwavhd_so(xwav, display_times)
+function PARAMS = rdxwavhd_sf(xwav, display_times)
 % 3/2/2011
 % rdxwavhd.m
 %
@@ -15,8 +15,9 @@ function PARAMS = rdxwavhd_so(xwav, display_times)
 % 060610 smw renamed PARAMS.xhd.SubchunkID and SubchunkSize with
 % prefixes f,h,d for format, harp, and data subchunks
 %
-% 2021 Dec 16 sf added display_times functionality (purpose for checking
-% timing info in LLHARP files)
+% 2021 Dec 16 sf extracted from triton as standalone (added _sf). Added 
+% display_times functionality (purpose for checking timing info in LLHARP 
+% files)
 
 %clear all
 %clc

@@ -5,13 +5,9 @@ function writeSplitXwavs(gapSummary, path_xwavs, path_split)
 %       WRITESPLITXWAVS(GAPSUMMARY, PATH_XWAVS, PATH_SPLIT)
 %
 %   Description:
-%       Process a directory of duty cycled xwavs to split them by
-%       identified time gaps and write new xwavs with filenames that have
-%       the timestamp of each raw file. 
-%
-%       Loads and modifies a global PARAMS
-%       variable for information about file paths, sample rates, and other
-%       parameters.
+%       Processes a directory of duty cycled xwavs to split them by
+%       identified time gaps and writes new xwavs with filenames that have
+%       the timestamp of each raw file to a new folder path_split.
 %
 %   Inputs:
 %       gapSummary     [table] summary info of which files contain gaps,
@@ -31,35 +27,36 @@ function writeSplitXwavs(gapSummary, path_xwavs, path_split)
 %   Authors:
 %       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
 %
-%   FirstVersion:   8 February 2022
-%   Updated:        5 May 2025
+%   Updated:        9 May 2025
 %
 %   Created with MATLAB ver.: 9.9.0.1524771 (R2020b) Update 2
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global PARAMS
+% global PARAMS
 
-if ~exist(path_split, 'folder')
+if ~exist(path_split, 'dir')
     mkdir(path_split);
 end
 
 % loop through each original file and split
-for wf = 1:height(gapSummary)
-    PARAMS = rdxwavhd_so(fullfile(gapSummary.folder{wf}, ...
-        gapSummary.fileName{wf}), []); % use 1 as display_times to print times.
+for xwf = 1:height(gapSummary)
+
+    % read xwav header info
+    PARAMS = rdxwavhd_sf(fullfile(gapSummary.folder{xwf}, ...
+        gapSummary.fileName{xwf}), false); % use true to print times for testing
 
     % update PARAMS with the input file name and path to split output files
-    PARAMS.infile = gapSummary.fileName{wf};
-    PARAMS.inpath = path_split;
+    PARAMS.infile = gapSummary.fileName{xwf};
+    PARAMS.inpath = path_xwavs;
 
     % find gaps btwn raw files > 75 seconds to find breaks in raw files
-    gapIdx = find(gapSummary.rawGaps{wf} > seconds(75));
+    gapIdx = find(gapSummary.rawGaps{xwf} > seconds(75));
     % add length of raw files as "last gap" (typically 30)
     % have to ignore NaTs to get correct length
-    gapIdx = [gapIdx; length(gapSummary.rawDates{wf}(~isnat(gapSummary.rawDates{wf})))];
+    gapIdx = [gapIdx; length(gapSummary.rawDates{xwf}(~isnat(gapSummary.rawDates{xwf})))];
     % there may be several gaps before the deployment because of bench
     % testing. That's ok. Still write individually
-    fprintf(1, '%s: %i gaps, %i files to write...\n', tsFileName, ...
+    fprintf(1, '%s: %i gaps, %i files to write...\n', gapSummary.fileName{xwf}, ...
         length(gapIdx)-1, length(gapIdx));
 
     for nf = 1:length(gapIdx) % loop through new files to be made
@@ -75,7 +72,7 @@ for wf = 1:height(gapSummary)
         rfStart = rfEnd - numRawFiles + 1;
 
         % generate new file name based on first raw file datetime
-        newFileStartTime = gapSummary.rawDates{wf}(rfStart);
+        newFileStartTime = gapSummary.rawDates{xwf}(rfStart);
         newFileStartStr = datestr(newFileStartTime,'yymmdd_HHMMSS');
         % split up the original-to-split file name by the date
         [~, prefix_strs] = regexp(tsFileName,'\d{6}[_]\d{6}','match','split');
