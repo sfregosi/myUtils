@@ -1,12 +1,12 @@
-function writeSplitXwavs(gapSummary, path_xwavs, path_split)
+function splitXwavs(gapSummary, path_xwavs, path_split)
 %WRITESPLITXWAVS	batch process write new split xwavs for all with gaps
 %
 %   Syntax:
-%       WRITESPLITXWAVS(GAPSUMMARY, PATH_XWAVS, PATH_SPLIT)
+%       SPLITXWAVS(GAPSUMMARY, PATH_XWAVS, PATH_SPLIT)
 %
 %   Description:
-%       Processes a directory of duty cycled xwavs to split them by
-%       identified time gaps and writes new xwavs with filenames that have
+%       Processes through a directory of duty cycled XWAVs - splits them by
+%       identified time gaps and writes new XWAVs with filenames that have
 %       the timestamp of each raw file to a new folder path_split.
 %
 %   Inputs:
@@ -14,15 +14,15 @@ function writeSplitXwavs(gapSummary, path_xwavs, path_split)
 %                      number, and location of gaps
 %       path_xwavs     [string] fullfile path to xwavs to be split
 %       path_split     [string] fullfile path to output folder for newly
-%                      split files 
+%                      split files
 %
 %   Outputs:
-%       none, writes xwavs
+%       writes .xwavs
 %
 %   Examples:
-%       writeSplitXwavs(gapSummary, path_xwavs, path_split)
+%       splitXwavs(gapSummary, path_xwavs, path_split)
 %
-%   See also SPLITXWAV, WRXWAVHD_SPLIT
+%   See also WRSPLITXWAV, WRXWAVHD_SPLIT
 %
 %   Authors:
 %       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
@@ -53,10 +53,10 @@ for xwf = 1:height(gapSummary)
     gapIdx = find(gapSummary.rawGaps{xwf} > seconds(75));
     % add length of raw files as "last gap" (typically 30)
     % have to ignore NaTs to get correct length
-    gapIdx = [gapIdx; length(gapSummary.rawDates{xwf}(~isnat(gapSummary.rawDates{xwf})))];
+    gapIdx = [gapIdx; length(gapSummary.rawDates{xwf}(~isnat(gapSummary.rawDates{xwf})))]; %#ok<AGROW>
     % there may be several gaps before the deployment because of bench
     % testing. That's ok. Still write individually
-    fprintf(1, '%s: %i gaps, %i files to write...\n', gapSummary.fileName{xwf}, ...
+    fprintf(1, '%s: %i gaps, writing %i files:\n', gapSummary.fileName{xwf}, ...
         length(gapIdx)-1, length(gapIdx));
 
     for nf = 1:length(gapIdx) % loop through new files to be made
@@ -73,22 +73,20 @@ for xwf = 1:height(gapSummary)
 
         % generate new file name based on first raw file datetime
         newFileStartTime = gapSummary.rawDates{xwf}(rfStart);
-        newFileStartStr = datestr(newFileStartTime,'yymmdd_HHMMSS');
+        newFileStartStr = datestr(newFileStartTime, 'yymmdd_HHMMSS');
         % split up the original-to-split file name by the date
-        [~, prefix_strs] = regexp(tsFileName,'\d{6}[_]\d{6}','match','split');
+        [~, prefix_strs] = regexp(gapSummary.fileName{xwf}, ...
+            '\d{6}[_]\d{6}', 'match', 'split');
         %             date_strs = regexp(filenamesc,'\d{6}[-]\d{6}','match');
         newFileName =  [prefix_strs{1} newFileStartStr prefix_strs{2}];
         PARAMS.outfile = newFileName;
         PARAMS.outpath = path_split;
 
         % write the new file
-        fprintf(1, 'writing new file: %s ...', newFileName)
-        splitxwav(rfStart, rfEnd);
+        fprintf(1, '  writing %s ... ', newFileName)
+        wrSplitXwav(PARAMS, rfStart, rfEnd);
+        
     end % end new files to be written
-
-
-    %testing - read header of newly written file.
-    %             PARAMS = rdxwavhd_so(fullfile(PARAMS.outpath, PARAMS.outfile)); % use 1 as display_times to print times.
 
 end % xwavs to be broken up
 

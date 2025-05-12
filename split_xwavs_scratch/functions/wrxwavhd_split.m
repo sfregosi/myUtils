@@ -1,23 +1,47 @@
-function new_xhd = wrxwavhd_split(rfStart, rfEnd)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function new_xhd = wrxwavhd_split(PARAMS, rfStart, rfEnd)
+% WRXWAVHD_SPLIT    Write an XWAV header
 %
-% wrxwavhd_trim.m
-% modifed from wrxwavhd.m (for decimating data) and made to just write
-% header for a select number of raw files.
+%   Syntax:
+%       NEW_XHD = WRXWAVHD_SPLIT(PARAMS, RFSTART, RFEND)
 %
-% write xwav header
-% Parameters:
-%       rfStart - index of first raw file to write
-%       rfEnd - index of last raw file to write
+%   Description:
+%       Modified version of Triton's wrxwavhd (used in decimating data)
+%       that writes a header just for a select number of raw files from an
+%       existing XWAV header. To be used when splitting XWAVs by gaps
+%       between dutycycles. 
 %
+%       Modifications include the inputs of which raw files to write and
+%       changing PARAMS to an input and output rather than global
 %
-% 8 Feb 2022 s. fregosi selene.fregosi@noaa.gov
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-global PARAMS
+%   Inputs:
+%       PARAMS     [struct] various parameters needed to specify metadata
+%                  about the XWAV
+%       rfStart    [integer] index of first raw file to write
+%       rfEnd      [integer] index of last raw file to write (will be
+%                  included)
+%
+%	Outputs:
+%       generates the beginning of an XWAV file
+%       new_xhd    [struct] PARAMS.xhd but for the new split file - various
+%                  parameters needed to specify metadata about the XWAV
+%
+%   Examples:
+%
+%   See also SPLITXWAVS, WRSPLITXWAV
+%
+%   Authors:
+%       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
+%
+%   Updated:   09 May 2025
+%
+%   Created with MATLAB ver.: 24.2.0.2740171 (R2024b) Update 1
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% global PARAMS
 
 num_rf = rfEnd - rfStart + 1;
 
-new_xhd = []; % temporary varible for to hold the header info
+new_xhd = []; % temporary varible to hold the header info
 % want to keep initial PARAMS.xhd because they may be trimmed several times
 % for a single initial xwav file to be trimmed. 
 
