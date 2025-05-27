@@ -2,7 +2,7 @@ function wrSplitXwav(PARAMS, rfStart, rfEnd)
 %SPLITXWAV	write new xwav from existing xwav containing only specified raw files
 %
 %   Syntax:
-%       WRSPLITXWAV(RFSTART, RFEND)
+%       WRSPLITXWAV(PARAMS, RFSTART, RFEND)
 %
 %   Description:
 %       Write a new XWAV, based on an existing XWAV, to include only the
@@ -25,7 +25,7 @@ function wrSplitXwav(PARAMS, rfStart, rfEnd)
 %       none, writes an .xwav file specified in PARAMS.outfile
 %
 %   Examples:
-%       splitXwav(rfStart, rfEnd);
+%       wrSplitXwav(PARAMS, rfStart, rfEnd);
 %
 %   See also SPLITXWAVS, WRXWAVHD_SPLIT
 %

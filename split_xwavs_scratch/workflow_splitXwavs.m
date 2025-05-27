@@ -43,13 +43,11 @@
 %% User specified inputs
 
 % add code to path
-% path_code = ('C:\Users\selene.fregosi\Documents\MATLAB\split-xwavs');
 path_code = 'C:\Users\selene.fregosi\Documents\MATLAB\myUtils\split_xwavs_scratch';
 addpath(genpath(path_code));
 
 % set input directory
 path_xwavs = 'C:\Users\selene.fregosi\Desktop\split_xwav_test\in\Wake_S_04';
-% path_xwavs = 'C:\Users\selene.fregosi\Desktop\split_xwav_test\in\Wake_S_10';
 % alternatively just prompt to select path to process
 if ~exist('path_xwavs', 'var')
     path_xwavs = uigetdir(path_in, 'Select folder containing xwavs');
@@ -57,7 +55,6 @@ if ~exist('path_xwavs', 'var')
 end
 
 % set output directory
-% will be created in writesplitXwavs if it doesn't exist
 path_split = ('C:\Users\selene.fregosi\Desktop\split_xwav_test\split');
 if ~exist(path_split, 'dir'); mkdir(path_split); end
 
