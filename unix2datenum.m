@@ -1,8 +1,8 @@
-function tm = unix2matlab(tu)
+function tm = unix2datenum(tu)
 % UNIX2MATLAB	Convert from Unix time (in seconds) to MATLAB datenum
 %
 %   Syntax:
-%       TM = UNIX2MATLAB(TU)
+%       TM = UNIX2DATENUM(TU)
 %
 %   Description:
 %       Conversion between Unix time, in seconds, to MATLAB time as a
@@ -16,9 +16,9 @@ function tm = unix2matlab(tu)
 %
 %   Examples:
 %       tu = 1745971200; % 30 April 2025
-%       tm = unix2matlab(tu);
+%       tm = unix2datenum(tu);
 %
-%   See also MATLAB2UNIX
+%   See also DATENUM2UNIX
 %
 %   Authors:
 %       S. Fregosi <selene.fregosi@gmail.com> <https://github.com/sfregosi>
